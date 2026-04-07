@@ -1,0 +1,902 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Check-In Dashboard</title>
+  <style>
+    :root {
+      --svs-dark: #243746;
+      --svs-blue: #49697c;
+      --svs-accent: #6f8ea0;
+      --svs-soft: #edf3f6;
+      --svs-border: #c7d4dc;
+      --text: #1f2a33;
+      --muted: #647784;
+      --white: #ffffff;
+      --upcoming: #8a8f96;
+      --active: #2f7d4a;
+      --complete: #3f6f92;
+      --danger: #b64c4c;
+      --shadow: 0 14px 34px rgba(36, 55, 70, 0.12);
+      --shadow-hover: 0 18px 40px rgba(36, 55, 70, 0.18);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: Arial, Helvetica, sans-serif;
+      background:
+        radial-gradient(circle at top left, rgba(111, 142, 160, 0.18), transparent 26%),
+        radial-gradient(circle at top right, rgba(73, 105, 124, 0.16), transparent 24%),
+        linear-gradient(180deg, #eef4f7 0%, #e7eef3 100%);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    .page {
+      max-width: 1420px;
+      margin: 0 auto;
+      padding: 26px 20px 44px;
+    }
+
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 18px;
+      padding: 20px 24px;
+      border-radius: 26px;
+      background: rgba(255,255,255,0.92);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(199, 212, 220, 0.95);
+      box-shadow: var(--shadow);
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      min-width: 0;
+    }
+
+    .brand img {
+      width: 84px;
+      height: 84px;
+      object-fit: contain;
+      background: #fff;
+      border-radius: 18px;
+      padding: 8px;
+      border: 1px solid var(--svs-border);
+      box-shadow: 0 8px 20px rgba(36, 55, 70, 0.1);
+      flex-shrink: 0;
+    }
+
+    .brand-text h1 {
+      margin: 0;
+      font-size: 30px;
+      color: var(--svs-dark);
+      line-height: 1.15;
+    }
+
+    .brand-text p {
+      margin: 7px 0 0;
+      color: var(--svs-blue);
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+
+    .topbar-right {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .nav-btn {
+      border: none;
+      border-radius: 14px;
+      padding: 12px 16px;
+      background: var(--svs-soft);
+      color: var(--svs-dark);
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      border: 1px solid var(--svs-border);
+      transition: 0.18s ease;
+    }
+
+    .nav-btn:hover {
+      background: #dfe9ee;
+      transform: translateY(-1px);
+    }
+
+    .hero {
+      position: relative;
+      overflow: hidden;
+      border-radius: 30px;
+      background: linear-gradient(135deg, var(--svs-dark) 0%, var(--svs-blue) 58%, var(--svs-accent) 100%);
+      color: white;
+      padding: 34px 32px;
+      box-shadow: var(--shadow);
+      margin-bottom: 24px;
+    }
+
+    .hero::before,
+    .hero::after {
+      content: "";
+      position: absolute;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.08);
+      pointer-events: none;
+    }
+
+    .hero::before {
+      width: 240px;
+      height: 240px;
+      top: -70px;
+      right: -40px;
+    }
+
+    .hero::after {
+      width: 150px;
+      height: 150px;
+      bottom: -45px;
+      right: 110px;
+    }
+
+    .hero-content {
+      position: relative;
+      z-index: 1;
+      max-width: 900px;
+    }
+
+    .hero h2 {
+      margin: 0 0 10px;
+      font-size: 34px;
+      line-height: 1.1;
+    }
+
+    .hero p {
+      margin: 0;
+      color: #e5edf2;
+      line-height: 1.7;
+      font-size: 15px;
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 18px;
+      margin-bottom: 24px;
+    }
+
+    .stat-card {
+      background: rgba(255,255,255,0.96);
+      border: 1px solid var(--svs-border);
+      border-radius: 22px;
+      padding: 22px;
+      box-shadow: var(--shadow);
+      transition: 0.18s ease;
+    }
+
+    .stat-card:hover {
+      transform: translateY(-3px);
+      box-shadow: var(--shadow-hover);
+    }
+
+    .stat-label {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--svs-blue);
+      text-transform: uppercase;
+      letter-spacing: 0.7px;
+      margin-bottom: 10px;
+    }
+
+    .stat-value {
+      font-size: 34px;
+      font-weight: 700;
+      color: var(--svs-dark);
+      margin-bottom: 8px;
+    }
+
+    .stat-note {
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.55;
+    }
+
+    .board {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 22px;
+      align-items: start;
+    }
+
+    .column {
+      background: rgba(255,255,255,0.96);
+      border: 1px solid var(--svs-border);
+      border-radius: 24px;
+      padding: 22px;
+      box-shadow: var(--shadow);
+      min-height: 520px;
+    }
+
+    .column-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      padding-bottom: 14px;
+      margin-bottom: 16px;
+      border-bottom: 1px solid var(--svs-border);
+      flex-wrap: wrap;
+    }
+
+    .column-head h3 {
+      margin: 0;
+      font-size: 24px;
+      color: var(--svs-dark);
+    }
+
+    .column-head p {
+      margin: 6px 0 0;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .count-chip {
+      min-width: 38px;
+      height: 38px;
+      padding: 0 12px;
+      border-radius: 999px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      font-weight: 700;
+      color: white;
+    }
+
+    .count-chip.upcoming {
+      background: var(--upcoming);
+    }
+
+    .count-chip.active {
+      background: var(--active);
+    }
+
+    .count-chip.complete {
+      background: var(--complete);
+    }
+
+    .job-list {
+      display: grid;
+      gap: 14px;
+    }
+
+    .job-card {
+      border: 1px solid var(--svs-border);
+      border-radius: 18px;
+      overflow: hidden;
+      background: #fbfdfe;
+      transition: 0.18s ease;
+    }
+
+    .job-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 24px rgba(36,55,70,0.12);
+    }
+
+    .job-strip {
+      height: 6px;
+      width: 100%;
+    }
+
+    .job-strip.upcoming {
+      background: var(--upcoming);
+    }
+
+    .job-strip.active {
+      background: var(--active);
+    }
+
+    .job-strip.complete {
+      background: var(--complete);
+    }
+
+    .job-body {
+      padding: 18px;
+    }
+
+    .job-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 10px;
+    }
+
+    .job-title {
+      margin: 0;
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--svs-dark);
+      line-height: 1.35;
+    }
+
+    .job-status {
+      border-radius: 999px;
+      padding: 8px 10px;
+      font-size: 12px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .job-status.upcoming {
+      background: #eff1f3;
+      color: #5a6168;
+      border: 1px solid #d8dde1;
+    }
+
+    .job-status.active {
+      background: #e6f5ec;
+      color: #25633a;
+      border: 1px solid #bee0ca;
+    }
+
+    .job-status.complete {
+      background: #e8f1f8;
+      color: #315b7a;
+      border: 1px solid #c7d9e8;
+    }
+
+    .job-site {
+      margin: 0 0 14px;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.55;
+    }
+
+    .job-details {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+
+    .job-detail {
+      background: var(--svs-soft);
+      border: 1px solid #dbe5ea;
+      border-radius: 14px;
+      padding: 10px 12px;
+    }
+
+    .job-detail-label {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--svs-accent);
+      text-transform: uppercase;
+      letter-spacing: 0.45px;
+      margin-bottom: 6px;
+    }
+
+    .job-detail-value {
+      font-size: 14px;
+      color: var(--text);
+      line-height: 1.45;
+      word-break: break-word;
+    }
+
+    .task-row {
+      margin-bottom: 14px;
+      font-size: 12px;
+      color: #6a7a84;
+      background: #f3f6f8;
+      border: 1px dashed #c8d4dc;
+      border-radius: 12px;
+      padding: 8px 10px;
+      word-break: break-all;
+    }
+
+    .button-row {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .mini-btn {
+      border: none;
+      border-radius: 12px;
+      padding: 11px 13px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: 0.18s ease;
+    }
+
+    .mini-btn.checkin {
+      background: #e6f5ec;
+      color: #25633a;
+      border: 1px solid #bee0ca;
+    }
+
+    .mini-btn.checkout {
+      background: #e8f1f8;
+      color: #315b7a;
+      border: 1px solid #c7d9e8;
+    }
+
+    .mini-btn.reset {
+      background: #f8e7e7;
+      color: var(--danger);
+      border: 1px solid #efc7c7;
+    }
+
+    .mini-btn:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+
+    .mini-btn:hover:not(:disabled) {
+      transform: translateY(-1px);
+    }
+
+    .empty-state {
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.6;
+      padding: 8px 0;
+    }
+
+    @media (max-width: 1180px) {
+      .board {
+        grid-template-columns: 1fr;
+      }
+
+      .column {
+        min-height: auto;
+      }
+    }
+
+    @media (max-width: 980px) {
+      .stats-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 760px) {
+      .page {
+        padding: 18px 14px 34px;
+      }
+
+      .topbar {
+        padding: 18px;
+      }
+
+      .brand img {
+        width: 72px;
+        height: 72px;
+      }
+
+      .brand-text h1 {
+        font-size: 24px;
+      }
+
+      .hero {
+        padding: 28px 22px;
+      }
+
+      .hero h2 {
+        font-size: 28px;
+      }
+
+      .stats-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .job-details {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+
+    <div class="topbar">
+      <div class="brand">
+        <img src="./svs-logo.png" alt="SVS Logo">
+        <div class="brand-text">
+          <h1>Check-In Dashboard</h1>
+          <p>Secure Vision Solutions</p>
+        </div>
+      </div>
+
+      <div class="topbar-right">
+        <button class="nav-btn" onclick="goTo('index.html')">Home</button>
+        <button class="nav-btn" onclick="goTo('dispatch.html')">Survey</button>
+        <button class="nav-btn" onclick="goTo('service.html')">Service</button>
+        <button class="nav-btn" onclick="goTo('installation.html')">Installation</button>
+        <button class="nav-btn" onclick="goTo('calendar.html')">Calendar</button>
+        <button class="nav-btn" onclick="goTo('technicians.html')">Technicians</button>
+      </div>
+    </div>
+
+    <div class="hero">
+      <div class="hero-content">
+        <h2>Track technician arrivals and departures with shared live timestamps.</h2>
+        <p>
+          This board now reads from the shared backend database, so everyone sees the same upcoming,
+          active, and completed jobs. Check-ins and check-outs save to the shared calendar and send
+          the matching ClickUp webhook comments with <strong>(Local Time)</strong>.
+        </p>
+      </div>
+    </div>
+
+    <section class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-label">Jobs Today</div>
+        <div class="stat-value" id="statTotal">0</div>
+        <div class="stat-note">All appointments on today’s shared schedule.</div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-label">Not Checked In</div>
+        <div class="stat-value" id="statUpcoming">0</div>
+        <div class="stat-note">Jobs still waiting for technician arrival.</div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-label">Checked In</div>
+        <div class="stat-value" id="statActive">0</div>
+        <div class="stat-note">Appointments currently active on-site.</div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-label">Completed</div>
+        <div class="stat-value" id="statComplete">0</div>
+        <div class="stat-note">Jobs already checked out today.</div>
+      </div>
+    </section>
+
+    <section class="board">
+      <div class="column">
+        <div class="column-head">
+          <div>
+            <h3>Upcoming</h3>
+            <p>Appointments not checked in yet.</p>
+          </div>
+          <div class="count-chip upcoming" id="upcomingCount">0</div>
+        </div>
+        <div class="job-list" id="upcomingList"></div>
+      </div>
+
+      <div class="column">
+        <div class="column-head">
+          <div>
+            <h3>Active</h3>
+            <p>Technicians currently on-site.</p>
+          </div>
+          <div class="count-chip active" id="activeCount">0</div>
+        </div>
+        <div class="job-list" id="activeList"></div>
+      </div>
+
+      <div class="column">
+        <div class="column-head">
+          <div>
+            <h3>Completed</h3>
+            <p>Jobs checked out for today.</p>
+          </div>
+          <div class="count-chip complete" id="completeCount">0</div>
+        </div>
+        <div class="job-list" id="completeList"></div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    const API_URL = "http://127.0.0.1:8000";
+    let eventsCache = [];
+
+    function goTo(page) {
+      window.location.href = page;
+    }
+
+    async function fetchEvents() {
+      const response = await fetch(`${API_URL}/events`);
+      eventsCache = await response.json();
+    }
+
+    async function updateEvent(eventId, payload) {
+      const response = await fetch(`${API_URL}/events/${eventId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+      return response;
+    }
+
+    function todayString() {
+      const now = new Date();
+      const year = now.getFullYear();
+      const month = String(now.getMonth() + 1).padStart(2, "0");
+      const day = String(now.getDate()).padStart(2, "0");
+      return `${year}-${month}-${day}`;
+    }
+
+    function normalizeStatus(event) {
+      if (event.checked_out) return "Checked Out";
+      if (event.checked_in) return "Checked In";
+      return "Not Checked In";
+    }
+
+    function getStatusClass(status) {
+      if (status === "Checked In") return "active";
+      if (status === "Checked Out") return "complete";
+      return "upcoming";
+    }
+
+    function getDisplayTime(event) {
+      if (event.displayTime && String(event.displayTime).trim()) {
+        return `${event.displayTime} (Local Time)`;
+      }
+      if (event.arrival_type === "window" && event.window_start && event.window_end) {
+        return `${event.window_start} - ${event.window_end} (Local Time)`;
+      }
+      return "No time listed";
+    }
+
+    function escapeHtml(value) {
+      return String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;");
+    }
+
+    function currentLocalTime() {
+      return new Date().toLocaleTimeString([], {
+        hour: "numeric",
+        minute: "2-digit"
+      });
+    }
+
+    function sortEvents(events) {
+      return [...events].sort((a, b) => {
+        const aTime = String(a.displayTime || a.time || "").toLowerCase();
+        const bTime = String(b.displayTime || b.time || "").toLowerCase();
+        return aTime.localeCompare(bTime);
+      });
+    }
+
+    async function sendCheckIn(eventId) {
+      const event = eventsCache.find(e => e.id === eventId);
+      if (!event) return;
+
+      if (!event.task_id) {
+        alert("This appointment is missing a ClickUp Task ID.");
+        return;
+      }
+
+      const time = currentLocalTime();
+
+      const updatedPayload = {
+        ...event,
+        checked_in: true,
+        checked_out: false,
+        check_in_time: time,
+        check_out_time: event.check_out_time || ""
+      };
+
+      const updateResponse = await updateEvent(eventId, updatedPayload);
+      if (!updateResponse.ok) {
+        alert("Unable to save check-in status to the shared backend.");
+        return;
+      }
+
+      try {
+        const response = await fetch(`${API_URL}/send-checkin`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            task_id: event.task_id || "",
+            client: event.client || "",
+            site: event.site || "",
+            technician: event.technician || "",
+            check_in_time: time
+          })
+        });
+
+        const data = await response.json();
+        if (!(data.status_code >= 200 && data.status_code < 300)) {
+          alert("Check-in saved, but webhook did not confirm success.");
+        }
+      } catch (error) {
+        alert("Check-in saved, but webhook request failed.");
+      }
+
+      await initPage(false);
+    }
+
+    async function sendCheckOut(eventId) {
+      const event = eventsCache.find(e => e.id === eventId);
+      if (!event) return;
+
+      if (!event.task_id) {
+        alert("This appointment is missing a ClickUp Task ID.");
+        return;
+      }
+
+      const time = currentLocalTime();
+
+      const updatedPayload = {
+        ...event,
+        checked_in: true,
+        checked_out: true,
+        check_out_time: time,
+        check_in_time: event.check_in_time || ""
+      };
+
+      const updateResponse = await updateEvent(eventId, updatedPayload);
+      if (!updateResponse.ok) {
+        alert("Unable to save check-out status to the shared backend.");
+        return;
+      }
+
+      try {
+        const response = await fetch(`${API_URL}/send-checkout`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            task_id: event.task_id || "",
+            client: event.client || "",
+            site: event.site || "",
+            technician: event.technician || "",
+            check_out_time: time
+          })
+        });
+
+        const data = await response.json();
+        if (!(data.status_code >= 200 && data.status_code < 300)) {
+          alert("Check-out saved, but webhook did not confirm success.");
+        }
+      } catch (error) {
+        alert("Check-out saved, but webhook request failed.");
+      }
+
+      await initPage(false);
+    }
+
+    async function resetStatus(eventId) {
+      const event = eventsCache.find(e => e.id === eventId);
+      if (!event) return;
+
+      const response = await updateEvent(eventId, {
+        ...event,
+        checked_in: false,
+        checked_out: false,
+        check_in_time: "",
+        check_out_time: ""
+      });
+
+      if (!response.ok) {
+        alert("Unable to reset status.");
+        return;
+      }
+
+      await initPage(false);
+      alert("Appointment status reset.");
+    }
+
+    function renderCard(event) {
+      const status = normalizeStatus(event);
+      const statusClass = getStatusClass(status);
+
+      return `
+        <div class="job-card">
+          <div class="job-strip ${statusClass}"></div>
+          <div class="job-body">
+            <div class="job-top">
+              <h4 class="job-title">${escapeHtml(event.client || "No client listed")}</h4>
+              <div class="job-status ${statusClass}">${escapeHtml(status)}</div>
+            </div>
+
+            <p class="job-site">${escapeHtml(event.site || "No site listed")}</p>
+
+            <div class="job-details">
+              <div class="job-detail">
+                <div class="job-detail-label">Your Time</div>
+                <div class="job-detail-value">${escapeHtml(getDisplayTime(event))}</div>
+              </div>
+
+              <div class="job-detail">
+                <div class="job-detail-label">Technician</div>
+                <div class="job-detail-value">${escapeHtml(event.technician || "No technician listed")}</div>
+              </div>
+
+              <div class="job-detail">
+                <div class="job-detail-label">Checked In</div>
+                <div class="job-detail-value">${escapeHtml(event.check_in_time ? `${event.check_in_time} (Local Time)` : "—")}</div>
+              </div>
+
+              <div class="job-detail">
+                <div class="job-detail-label">Checked Out</div>
+                <div class="job-detail-value">${escapeHtml(event.check_out_time ? `${event.check_out_time} (Local Time)` : "—")}</div>
+              </div>
+            </div>
+
+            <div class="task-row">
+              <strong>ClickUp Task ID:</strong> ${escapeHtml(event.task_id || "Not added")}
+            </div>
+
+            <div class="button-row">
+              <button class="mini-btn checkin" onclick="sendCheckIn(${event.id})" ${status !== "Not Checked In" ? "disabled" : ""}>Check In</button>
+              <button class="mini-btn checkout" onclick="sendCheckOut(${event.id})" ${status !== "Checked In" ? "disabled" : ""}>Check Out</button>
+              <button class="mini-btn reset" onclick="resetStatus(${event.id})" ${status === "Not Checked In" ? "disabled" : ""}>Reset</button>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderBoard() {
+      const today = todayString();
+
+      const todayEvents = eventsCache.filter(event => event.date === today);
+
+      const upcoming = sortEvents(todayEvents.filter(event => !event.checked_in && !event.checked_out));
+      const active = sortEvents(todayEvents.filter(event => event.checked_in && !event.checked_out));
+      const complete = sortEvents(todayEvents.filter(event => event.checked_out));
+
+      document.getElementById("statTotal").innerText = todayEvents.length;
+      document.getElementById("statUpcoming").innerText = upcoming.length;
+      document.getElementById("statActive").innerText = active.length;
+      document.getElementById("statComplete").innerText = complete.length;
+
+      document.getElementById("upcomingCount").innerText = upcoming.length;
+      document.getElementById("activeCount").innerText = active.length;
+      document.getElementById("completeCount").innerText = complete.length;
+
+      const upcomingList = document.getElementById("upcomingList");
+      const activeList = document.getElementById("activeList");
+      const completeList = document.getElementById("completeList");
+
+      upcomingList.innerHTML = upcoming.length
+        ? upcoming.map(renderCard).join("")
+        : `<div class="empty-state">No upcoming appointments for today.</div>`;
+
+      activeList.innerHTML = active.length
+        ? active.map(renderCard).join("")
+        : `<div class="empty-state">No active jobs right now.</div>`;
+
+      completeList.innerHTML = complete.length
+        ? complete.map(renderCard).join("")
+        : `<div class="empty-state">No completed jobs for today yet.</div>`;
+    }
+
+    async function initPage(showErrors = true) {
+      try {
+        await fetchEvents();
+        renderBoard();
+      } catch (error) {
+        if (showErrors) {
+          alert("Unable to load shared appointments from the backend.");
+        }
+      }
+    }
+
+    initPage();
+  </script>
+</body>
+</html>

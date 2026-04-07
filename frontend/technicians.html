@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Technician Contacts</title>
+  <style>
+    :root {
+      --svs-dark: #243746;
+      --svs-blue: #49697c;
+      --svs-accent: #6f8ea0;
+      --svs-soft: #edf3f6;
+      --svs-border: #c7d4dc;
+      --text: #1f2a33;
+      --muted: #647784;
+      --danger: #b64c4c;
+      --shadow: 0 14px 34px rgba(36, 55, 70, 0.12);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: Arial, Helvetica, sans-serif;
+      background:
+        radial-gradient(circle at top left, rgba(111, 142, 160, 0.18), transparent 26%),
+        radial-gradient(circle at top right, rgba(73, 105, 124, 0.16), transparent 24%),
+        linear-gradient(180deg, #eef4f7 0%, #e7eef3 100%);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    .page {
+      max-width: 1420px;
+      margin: 0 auto;
+      padding: 26px 20px 44px;
+    }
+
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 18px;
+      padding: 20px 24px;
+      border-radius: 26px;
+      background: rgba(255,255,255,0.92);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(199, 212, 220, 0.95);
+      box-shadow: var(--shadow);
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      min-width: 0;
+    }
+
+    .brand img {
+      width: 84px;
+      height: 84px;
+      object-fit: contain;
+      background: #fff;
+      border-radius: 18px;
+      padding: 8px;
+      border: 1px solid var(--svs-border);
+      box-shadow: 0 8px 20px rgba(36, 55, 70, 0.1);
+      flex-shrink: 0;
+    }
+
+    .brand-text h1 {
+      margin: 0;
+      font-size: 30px;
+      color: var(--svs-dark);
+      line-height: 1.15;
+    }
+
+    .brand-text p {
+      margin: 7px 0 0;
+      color: var(--svs-blue);
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+
+    .topbar-right {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .nav-btn {
+      border: none;
+      border-radius: 14px;
+      padding: 12px 16px;
+      background: var(--svs-soft);
+      color: var(--svs-dark);
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      border: 1px solid var(--svs-border);
+      transition: 0.18s ease;
+    }
+
+    .nav-btn:hover {
+      background: #dfe9ee;
+      transform: translateY(-1px);
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 0.95fr 1.05fr;
+      gap: 22px;
+    }
+
+    .panel {
+      background: rgba(255,255,255,0.96);
+      border: 1px solid var(--svs-border);
+      border-radius: 24px;
+      padding: 24px;
+      box-shadow: var(--shadow);
+    }
+
+    .panel h2 {
+      margin: 0 0 18px;
+      font-size: 26px;
+      color: var(--svs-dark);
+    }
+
+    .section-note {
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.6;
+      margin-bottom: 16px;
+    }
+
+    .form-grid {
+      display: grid;
+      gap: 16px;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 7px;
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--svs-dark);
+      text-transform: uppercase;
+      letter-spacing: 0.45px;
+    }
+
+    input {
+      width: 100%;
+      border: 1px solid var(--svs-border);
+      border-radius: 14px;
+      padding: 13px 14px;
+      font-size: 15px;
+      color: var(--text);
+      background: #fbfdfe;
+      outline: none;
+    }
+
+    .actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 18px;
+    }
+
+    .action-btn {
+      border: none;
+      border-radius: 14px;
+      padding: 13px 18px;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: 0.18s ease;
+    }
+
+    .action-btn.primary {
+      background: linear-gradient(135deg, var(--svs-dark), var(--svs-blue));
+      color: white;
+      box-shadow: 0 10px 22px rgba(36, 55, 70, 0.16);
+    }
+
+    .action-btn.secondary {
+      background: var(--svs-soft);
+      color: var(--svs-dark);
+      border: 1px solid var(--svs-border);
+    }
+
+    .action-btn:hover {
+      transform: translateY(-1px);
+    }
+
+    .search-wrap {
+      margin-bottom: 16px;
+    }
+
+    .tech-list {
+      display: grid;
+      gap: 14px;
+      max-height: 690px;
+      overflow-y: auto;
+      padding-right: 4px;
+    }
+
+    .tech-list::-webkit-scrollbar {
+      width: 10px;
+    }
+
+    .tech-list::-webkit-scrollbar-thumb {
+      background: #c8d4dc;
+      border-radius: 999px;
+    }
+
+    .tech-card {
+      border: 1px solid var(--svs-border);
+      border-radius: 18px;
+      overflow: hidden;
+      background: #fbfdfe;
+      transition: 0.18s ease;
+    }
+
+    .tech-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 24px rgba(36,55,70,0.12);
+    }
+
+    .tech-strip {
+      height: 6px;
+      background: linear-gradient(90deg, var(--svs-dark), var(--svs-blue), var(--svs-accent));
+    }
+
+    .tech-body {
+      padding: 18px;
+    }
+
+    .tech-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 12px;
+    }
+
+    .tech-name {
+      margin: 0;
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--svs-dark);
+      line-height: 1.35;
+    }
+
+    .tech-phone {
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.5;
+      margin: 0;
+    }
+
+    .tech-buttons {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 12px;
+    }
+
+    .mini-btn {
+      border: none;
+      border-radius: 12px;
+      padding: 10px 12px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: 0.18s ease;
+    }
+
+    .mini-btn.edit {
+      background: var(--svs-soft);
+      color: var(--svs-dark);
+      border: 1px solid var(--svs-border);
+    }
+
+    .mini-btn.delete {
+      background: #f8e7e7;
+      color: var(--danger);
+      border: 1px solid #efc7c7;
+    }
+
+    .mini-btn:hover {
+      transform: translateY(-1px);
+    }
+
+    .empty-state {
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.6;
+      padding: 10px 0;
+    }
+
+    .editing-note {
+      margin-top: 12px;
+      padding: 12px 14px;
+      border-radius: 14px;
+      background: #f4f8fa;
+      border: 1px solid var(--svs-border);
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.5;
+      display: none;
+    }
+
+    @media (max-width: 1100px) {
+      .layout {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 760px) {
+      .page {
+        padding: 18px 14px 34px;
+      }
+
+      .topbar {
+        padding: 18px;
+      }
+
+      .brand img {
+        width: 72px;
+        height: 72px;
+      }
+
+      .brand-text h1 {
+        font-size: 24px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <div class="topbar">
+      <div class="brand">
+        <img src="./svs-logo.png" alt="SVS Logo">
+        <div class="brand-text">
+          <h1>Technician Contacts</h1>
+          <p>Secure Vision Solutions</p>
+        </div>
+      </div>
+
+      <div class="topbar-right">
+        <button class="nav-btn" onclick="goTo('index.html')">Home</button>
+        <button class="nav-btn" onclick="goTo('dispatch.html')">Survey</button>
+        <button class="nav-btn" onclick="goTo('service.html')">Service</button>
+        <button class="nav-btn" onclick="goTo('installation.html')">Installation</button>
+        <button class="nav-btn" onclick="goTo('calendar.html')">Calendar</button>
+        <button class="nav-btn" onclick="goTo('checkin.html')">Check-In Board</button>
+      </div>
+    </div>
+
+    <div class="layout">
+      <div class="panel">
+        <h2>Add or Edit Technician</h2>
+        <div class="section-note">
+          These contacts are now shared through the backend, so everyone using the site will see the same technician list.
+        </div>
+
+        <div class="form-grid">
+          <div>
+            <label for="tech_name">Technician Name</label>
+            <input id="tech_name" placeholder="Enter technician name">
+          </div>
+
+          <div>
+            <label for="tech_phone">Technician Phone</label>
+            <input id="tech_phone" placeholder="Enter technician phone number">
+          </div>
+        </div>
+
+        <div class="actions">
+          <button class="action-btn primary" onclick="saveTechnician()">Save Technician</button>
+          <button class="action-btn secondary" onclick="clearForm()">Clear</button>
+        </div>
+
+        <div class="editing-note" id="editing_note">
+          You are editing an existing technician. Save to update their shared contact information.
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2>Saved Technicians</h2>
+
+        <div class="search-wrap">
+          <label for="search_input">Search Technicians</label>
+          <input id="search_input" placeholder="Search by name or phone" oninput="renderTechnicians()">
+        </div>
+
+        <div class="tech-list" id="tech_list"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const API_URL = "http://127.0.0.1:8000";
+    let editingId = null;
+    let technicians = [];
+
+    function goTo(page) {
+      window.location.href = page;
+    }
+
+    async function fetchTechnicians() {
+      const response = await fetch(`${API_URL}/technicians`);
+      technicians = await response.json();
+    }
+
+    function escapeHtml(value) {
+      return String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;");
+    }
+
+    function renderTechnicians() {
+      const search = document.getElementById("search_input").value.trim().toLowerCase();
+      const container = document.getElementById("tech_list");
+
+      const filtered = technicians.filter(tech => {
+        const name = (tech.name || "").toLowerCase();
+        const phone = (tech.phone || "").toLowerCase();
+        return name.includes(search) || phone.includes(search);
+      });
+
+      if (filtered.length === 0) {
+        container.innerHTML = `<div class="empty-state">No technicians found.</div>`;
+        return;
+      }
+
+      container.innerHTML = filtered.map(tech => `
+        <div class="tech-card">
+          <div class="tech-strip"></div>
+          <div class="tech-body">
+            <div class="tech-top">
+              <div>
+                <h3 class="tech-name">${escapeHtml(tech.name || "No name")}</h3>
+                <p class="tech-phone">${escapeHtml(tech.phone || "No phone")}</p>
+              </div>
+            </div>
+
+            <div class="tech-buttons">
+              <button class="mini-btn edit" onclick="editTechnician(${tech.id})">Edit</button>
+              <button class="mini-btn delete" onclick="deleteTechnician(${tech.id})">Delete</button>
+            </div>
+          </div>
+        </div>
+      `).join("");
+    }
+
+    async function saveTechnician() {
+      const name = document.getElementById("tech_name").value.trim();
+      const phone = document.getElementById("tech_phone").value.trim();
+
+      if (!name || !phone) {
+        alert("Please enter both a technician name and phone number.");
+        return;
+      }
+
+      const payload = { name, phone };
+
+      let response;
+      if (editingId !== null) {
+        response = await fetch(`${API_URL}/technicians/${editingId}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+      } else {
+        response = await fetch(`${API_URL}/technicians`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+      }
+
+      if (!response.ok) {
+        const err = await response.json();
+        alert(err.detail || "Unable to save technician.");
+        return;
+      }
+
+      await fetchTechnicians();
+      clearForm();
+      renderTechnicians();
+      alert("Technician saved.");
+    }
+
+    function editTechnician(id) {
+      const tech = technicians.find(t => t.id === id);
+      if (!tech) return;
+
+      document.getElementById("tech_name").value = tech.name || "";
+      document.getElementById("tech_phone").value = tech.phone || "";
+      editingId = id;
+      document.getElementById("editing_note").style.display = "block";
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+
+    async function deleteTechnician(id) {
+      const tech = technicians.find(t => t.id === id);
+      if (!tech) return;
+
+      const confirmed = confirm(`Delete technician "${tech.name}"?`);
+      if (!confirmed) return;
+
+      const response = await fetch(`${API_URL}/technicians/${id}`, {
+        method: "DELETE"
+      });
+
+      if (!response.ok) {
+        const err = await response.json();
+        alert(err.detail || "Unable to delete technician.");
+        return;
+      }
+
+      await fetchTechnicians();
+      if (editingId === id) {
+        clearForm();
+      }
+      renderTechnicians();
+      alert("Technician deleted.");
+    }
+
+    function clearForm() {
+      document.getElementById("tech_name").value = "";
+      document.getElementById("tech_phone").value = "";
+      editingId = null;
+      document.getElementById("editing_note").style.display = "none";
+    }
+
+    async function initPage() {
+      await fetchTechnicians();
+      renderTechnicians();
+    }
+
+    initPage();
+  </script>
+</body>
+</html>

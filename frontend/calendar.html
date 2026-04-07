@@ -1,0 +1,869 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SVS Calendar</title>
+  <style>
+    :root {
+      --svs-dark: #243746;
+      --svs-blue: #49697c;
+      --svs-accent: #6f8ea0;
+      --svs-soft: #edf3f6;
+      --svs-border: #c7d4dc;
+      --text: #1f2a33;
+      --muted: #647784;
+      --white: #ffffff;
+      --upcoming: #8a8f96;
+      --active: #2f7d4a;
+      --complete: #3f6f92;
+      --danger: #b64c4c;
+      --shadow: 0 14px 34px rgba(36, 55, 70, 0.12);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: Arial, Helvetica, sans-serif;
+      background:
+        radial-gradient(circle at top left, rgba(111, 142, 160, 0.18), transparent 26%),
+        radial-gradient(circle at top right, rgba(73, 105, 124, 0.16), transparent 24%),
+        linear-gradient(180deg, #eef4f7 0%, #e7eef3 100%);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    .page {
+      max-width: 1420px;
+      margin: 0 auto;
+      padding: 26px 20px 44px;
+    }
+
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 18px;
+      padding: 20px 24px;
+      border-radius: 26px;
+      background: rgba(255,255,255,0.92);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(199, 212, 220, 0.95);
+      box-shadow: var(--shadow);
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      min-width: 0;
+    }
+
+    .brand img {
+      width: 84px;
+      height: 84px;
+      object-fit: contain;
+      background: #fff;
+      border-radius: 18px;
+      padding: 8px;
+      border: 1px solid var(--svs-border);
+      box-shadow: 0 8px 20px rgba(36, 55, 70, 0.1);
+      flex-shrink: 0;
+    }
+
+    .brand-text h1 {
+      margin: 0;
+      font-size: 30px;
+      color: var(--svs-dark);
+      line-height: 1.15;
+    }
+
+    .brand-text p {
+      margin: 7px 0 0;
+      color: var(--svs-blue);
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+
+    .topbar-right {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .nav-btn {
+      border: none;
+      border-radius: 14px;
+      padding: 12px 16px;
+      background: var(--svs-soft);
+      color: var(--svs-dark);
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      border: 1px solid var(--svs-border);
+      transition: 0.18s ease;
+    }
+
+    .nav-btn:hover {
+      background: #dfe9ee;
+      transform: translateY(-1px);
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 1.12fr 0.88fr;
+      gap: 22px;
+    }
+
+    .panel {
+      background: rgba(255,255,255,0.96);
+      border: 1px solid var(--svs-border);
+      border-radius: 24px;
+      padding: 24px;
+      box-shadow: var(--shadow);
+    }
+
+    .calendar-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 14px;
+      margin-bottom: 18px;
+      flex-wrap: wrap;
+    }
+
+    .calendar-title {
+      font-size: 28px;
+      font-weight: 700;
+      color: var(--svs-dark);
+    }
+
+    .calendar-actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .action-btn {
+      border: none;
+      border-radius: 14px;
+      padding: 12px 16px;
+      background: linear-gradient(135deg, var(--svs-dark), var(--svs-blue));
+      color: white;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      box-shadow: 0 10px 22px rgba(36, 55, 70, 0.16);
+    }
+
+    .action-btn.secondary {
+      background: var(--svs-soft);
+      color: var(--svs-dark);
+      border: 1px solid var(--svs-border);
+      box-shadow: none;
+    }
+
+    .action-btn:hover {
+      transform: translateY(-1px);
+    }
+
+    .weekday-row,
+    .calendar-grid {
+      display: grid;
+      grid-template-columns: repeat(7, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .weekday {
+      text-align: center;
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--svs-accent);
+      letter-spacing: 0.45px;
+      text-transform: uppercase;
+      padding-bottom: 4px;
+    }
+
+    .day {
+      min-height: 150px;
+      border: 1px solid var(--svs-border);
+      border-radius: 18px;
+      background: #fbfdfe;
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .day.other-month {
+      opacity: 0.4;
+      background: #f5f8fa;
+    }
+
+    .day-number {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--svs-dark);
+    }
+
+    .event-card {
+      border-radius: 12px;
+      padding: 9px 10px;
+      border: 1px solid var(--svs-border);
+      font-size: 12px;
+      line-height: 1.4;
+      cursor: pointer;
+      transition: 0.16s ease;
+    }
+
+    .event-card:hover {
+      transform: translateY(-1px);
+      filter: brightness(0.99);
+    }
+
+    .event-card.upcoming {
+      background: #eff1f3;
+      border-color: #d5dbe0;
+    }
+
+    .event-card.active {
+      background: #e7f5ec;
+      border-color: #c4decf;
+    }
+
+    .event-card.complete {
+      background: #e8f0f7;
+      border-color: #c9d9e6;
+    }
+
+    .event-title {
+      font-weight: 700;
+      color: var(--svs-dark);
+      margin-bottom: 4px;
+    }
+
+    .event-time {
+      color: var(--text);
+      margin-bottom: 6px;
+    }
+
+    .event-status {
+      display: inline-flex;
+      align-items: center;
+      border-radius: 999px;
+      padding: 4px 8px;
+      font-size: 11px;
+      font-weight: 700;
+    }
+
+    .event-status.upcoming {
+      background: #dfe4e8;
+      color: #5d646b;
+    }
+
+    .event-status.active {
+      background: #d7eedf;
+      color: #29653e;
+    }
+
+    .event-status.complete {
+      background: #dbe9f4;
+      color: #36617f;
+    }
+
+    .detail-title {
+      margin: 0 0 16px;
+      font-size: 24px;
+      color: var(--svs-dark);
+    }
+
+    .empty-state {
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      border-radius: 999px;
+      padding: 8px 12px;
+      font-size: 13px;
+      font-weight: 700;
+      margin-bottom: 16px;
+    }
+
+    .status-pill.upcoming {
+      background: #eff1f3;
+      color: #5d646b;
+      border: 1px solid #d7dde2;
+    }
+
+    .status-pill.active {
+      background: #e6f5ec;
+      color: #29653e;
+      border: 1px solid #c0dfcb;
+    }
+
+    .status-pill.complete {
+      background: #e8f0f7;
+      color: #36617f;
+      border: 1px solid #c8d9e7;
+    }
+
+    .detail-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .field.full {
+      grid-column: 1 / -1;
+    }
+
+    .field label {
+      display: block;
+      margin-bottom: 7px;
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--svs-dark);
+      text-transform: uppercase;
+      letter-spacing: 0.45px;
+    }
+
+    .field input,
+    .field textarea,
+    .field select {
+      width: 100%;
+      border: 1px solid var(--svs-border);
+      border-radius: 14px;
+      padding: 13px 14px;
+      font-size: 15px;
+      color: var(--text);
+      background: #fbfdfe;
+      outline: none;
+    }
+
+    .field textarea {
+      resize: vertical;
+      min-height: 110px;
+      line-height: 1.5;
+    }
+
+    .detail-actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 18px;
+    }
+
+    .save-btn,
+    .delete-btn {
+      border: none;
+      border-radius: 14px;
+      padding: 13px 18px;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: 0.18s ease;
+    }
+
+    .save-btn {
+      background: linear-gradient(135deg, var(--svs-dark), var(--svs-blue));
+      color: white;
+      box-shadow: 0 10px 22px rgba(36, 55, 70, 0.16);
+    }
+
+    .delete-btn {
+      background: #f8e7e7;
+      color: var(--danger);
+      border: 1px solid #efc7c7;
+    }
+
+    .save-btn:hover,
+    .delete-btn:hover {
+      transform: translateY(-1px);
+    }
+
+    @media (max-width: 1180px) {
+      .layout {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 760px) {
+      .page {
+        padding: 18px 14px 34px;
+      }
+
+      .topbar {
+        padding: 18px;
+      }
+
+      .brand img {
+        width: 72px;
+        height: 72px;
+      }
+
+      .brand-text h1 {
+        font-size: 24px;
+      }
+
+      .weekday-row,
+      .calendar-grid {
+        gap: 6px;
+      }
+
+      .day {
+        min-height: 120px;
+      }
+
+      .detail-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .field.full {
+        grid-column: auto;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+
+    <div class="topbar">
+      <div class="brand">
+        <img src="./svs-logo.png" alt="SVS Logo">
+        <div class="brand-text">
+          <h1>Calendar</h1>
+          <p>Secure Vision Solutions</p>
+        </div>
+      </div>
+
+      <div class="topbar-right">
+        <button class="nav-btn" onclick="goTo('index.html')">Home</button>
+        <button class="nav-btn" onclick="goTo('dispatch.html')">Survey</button>
+        <button class="nav-btn" onclick="goTo('service.html')">Service</button>
+        <button class="nav-btn" onclick="goTo('installation.html')">Installation</button>
+        <button class="nav-btn" onclick="goTo('checkin.html')">Check-In Board</button>
+        <button class="nav-btn" onclick="goTo('technicians.html')">Technicians</button>
+      </div>
+    </div>
+
+    <div class="layout">
+      <div class="panel">
+        <div class="calendar-head">
+          <div class="calendar-title" id="month_title"></div>
+          <div class="calendar-actions">
+            <button class="action-btn secondary" onclick="changeMonth(-1)">Previous</button>
+            <button class="action-btn secondary" onclick="goToToday()">Today</button>
+            <button class="action-btn secondary" onclick="changeMonth(1)">Next</button>
+          </div>
+        </div>
+
+        <div class="weekday-row">
+          <div class="weekday">Sun</div>
+          <div class="weekday">Mon</div>
+          <div class="weekday">Tue</div>
+          <div class="weekday">Wed</div>
+          <div class="weekday">Thu</div>
+          <div class="weekday">Fri</div>
+          <div class="weekday">Sat</div>
+        </div>
+
+        <div class="calendar-grid" id="calendar_grid"></div>
+      </div>
+
+      <div class="panel">
+        <h2 class="detail-title">Appointment Details</h2>
+        <div id="details_view" class="empty-state">Click any calendar event to view and edit its full details.</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const API_URL = "http://127.0.0.1:8000";
+    let currentDate = new Date();
+    let selectedEvent = null;
+    let eventsCache = [];
+
+    function goTo(page) {
+      window.location.href = page;
+    }
+
+    async function fetchEvents() {
+      const response = await fetch(`${API_URL}/events`);
+      eventsCache = await response.json();
+    }
+
+    function normalizeStatus(event) {
+      if (event.checked_out) return "Checked Out";
+      if (event.checked_in) return "Checked In";
+      return "Not Checked In";
+    }
+
+    function getStatusClass(status) {
+      if (status === "Checked In") return "active";
+      if (status === "Checked Out") return "complete";
+      return "upcoming";
+    }
+
+    function getDisplayTime(event) {
+      if (event.displayTime && String(event.displayTime).trim()) return `${event.displayTime} (Local Time)`;
+      if (event.arrival_type === "window" && event.window_start && event.window_end) {
+        return `${event.window_start} - ${event.window_end} (Local Time)`;
+      }
+      return "No time listed";
+    }
+
+    function monthName(date) {
+      return date.toLocaleString("en-US", { month: "long", year: "numeric" });
+    }
+
+    function escapeHtml(value) {
+      return String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;");
+    }
+
+    function formatDateKey(year, month, day) {
+      return `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+    }
+
+    function changeMonth(amount) {
+      currentDate.setMonth(currentDate.getMonth() + amount);
+      renderCalendar();
+    }
+
+    function goToToday() {
+      currentDate = new Date();
+      renderCalendar();
+    }
+
+    function renderCalendar() {
+      const grid = document.getElementById("calendar_grid");
+      grid.innerHTML = "";
+      document.getElementById("month_title").innerText = monthName(currentDate);
+
+      const year = currentDate.getFullYear();
+      const month = currentDate.getMonth();
+
+      const firstDay = new Date(year, month, 1);
+      const startDay = firstDay.getDay();
+      const daysInMonth = new Date(year, month + 1, 0).getDate();
+      const prevMonthDays = new Date(year, month, 0).getDate();
+
+      for (let i = 0; i < 42; i++) {
+        const dayBox = document.createElement("div");
+        dayBox.className = "day";
+
+        let dayNum;
+        let displayMonth = month;
+        let displayYear = year;
+        let otherMonth = false;
+
+        if (i < startDay) {
+          dayNum = prevMonthDays - startDay + i + 1;
+          displayMonth = month - 1;
+          if (displayMonth < 0) {
+            displayMonth = 11;
+            displayYear--;
+          }
+          otherMonth = true;
+        } else if (i >= startDay + daysInMonth) {
+          dayNum = i - (startDay + daysInMonth) + 1;
+          displayMonth = month + 1;
+          if (displayMonth > 11) {
+            displayMonth = 0;
+            displayYear++;
+          }
+          otherMonth = true;
+        } else {
+          dayNum = i - startDay + 1;
+        }
+
+        if (otherMonth) {
+          dayBox.classList.add("other-month");
+        }
+
+        const number = document.createElement("div");
+        number.className = "day-number";
+        number.innerText = dayNum;
+        dayBox.appendChild(number);
+
+        const dateKey = formatDateKey(displayYear, displayMonth, dayNum);
+        const dayEvents = eventsCache.filter(event => event.date === dateKey);
+
+        dayEvents.forEach(event => {
+          const status = normalizeStatus(event);
+          const statusClass = getStatusClass(status);
+
+          const eventDiv = document.createElement("div");
+          eventDiv.className = `event-card ${statusClass}`;
+          eventDiv.innerHTML = `
+            <div class="event-title">${escapeHtml(event.client || event.site || "Appointment")}</div>
+            <div class="event-time">${escapeHtml(getDisplayTime(event))}</div>
+            <div class="event-status ${statusClass}">${escapeHtml(status)}</div>
+          `;
+          eventDiv.onclick = () => openDetails(event);
+          dayBox.appendChild(eventDiv);
+        });
+
+        grid.appendChild(dayBox);
+      }
+    }
+
+    function openDetails(event) {
+      selectedEvent = event;
+      const status = normalizeStatus(event);
+      const statusClass = getStatusClass(status);
+
+      document.getElementById("details_view").innerHTML = `
+        <div class="status-pill ${statusClass}">${escapeHtml(status)}</div>
+
+        <div class="detail-grid">
+          <div class="field">
+            <label>Client</label>
+            <input id="edit_client" value="${escapeHtml(event.client || "")}">
+          </div>
+
+          <div class="field">
+            <label>Site</label>
+            <input id="edit_site" value="${escapeHtml(event.site || "")}">
+          </div>
+
+          <div class="field">
+            <label>Your Calendar Date</label>
+            <input id="edit_date" type="date" value="${escapeHtml(event.date || "")}">
+          </div>
+
+          <div class="field">
+            <label>Original Site Date</label>
+            <input id="edit_site_date" type="date" value="${escapeHtml(event.site_date || "")}">
+          </div>
+
+          <div class="field">
+            <label>Arrival Type</label>
+            <select id="edit_arrival_type" onchange="toggleArrivalFields()">
+              <option value="exact" ${event.arrival_type === "exact" ? "selected" : ""}>Exact Time</option>
+              <option value="window" ${event.arrival_type === "window" ? "selected" : ""}>Arrival Window</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label>Status</label>
+            <select id="edit_status">
+              <option value="Not Checked In" ${status === "Not Checked In" ? "selected" : ""}>Not Checked In</option>
+              <option value="Checked In" ${status === "Checked In" ? "selected" : ""}>Checked In</option>
+              <option value="Checked Out" ${status === "Checked Out" ? "selected" : ""}>Checked Out</option>
+            </select>
+          </div>
+
+          <div class="field" id="edit_time_wrap">
+            <label>Your Time</label>
+            <input id="edit_time" value="${escapeHtml(event.time || "")}">
+          </div>
+
+          <div class="field" id="edit_window_start_wrap">
+            <label>Your Window Start</label>
+            <input id="edit_window_start" value="${escapeHtml(event.window_start || "")}">
+          </div>
+
+          <div class="field" id="edit_window_end_wrap">
+            <label>Your Window End</label>
+            <input id="edit_window_end" value="${escapeHtml(event.window_end || "")}">
+          </div>
+
+          <div class="field">
+            <label>Technician</label>
+            <input id="edit_technician" value="${escapeHtml(event.technician || "")}">
+          </div>
+
+          <div class="field">
+            <label>Technician Phone</label>
+            <input id="edit_technician_phone" value="${escapeHtml(event.technician_phone || "")}">
+          </div>
+
+          <div class="field">
+            <label>ClickUp Task ID</label>
+            <input id="edit_task_id" value="${escapeHtml(event.task_id || "")}">
+          </div>
+
+          <div class="field">
+            <label>Project Type</label>
+            <input id="edit_project_type" value="${escapeHtml(event.project_type || "")}">
+          </div>
+
+          <div class="field">
+            <label>Checked In At</label>
+            <input id="edit_check_in_time" value="${escapeHtml(event.check_in_time || "")}">
+          </div>
+
+          <div class="field">
+            <label>Checked Out At</label>
+            <input id="edit_check_out_time" value="${escapeHtml(event.check_out_time || "")}">
+          </div>
+
+          <div class="field">
+            <label>Site Contact Name</label>
+            <input id="edit_contact_name" value="${escapeHtml(event.contact_name || "")}">
+          </div>
+
+          <div class="field">
+            <label>Site Contact Phone</label>
+            <input id="edit_contact_phone" value="${escapeHtml(event.contact_phone || "")}">
+          </div>
+
+          <div class="field full">
+            <label>Site Contact Email</label>
+            <input id="edit_contact_email" value="${escapeHtml(event.contact_email || "")}">
+          </div>
+
+          <div class="field full">
+            <label>Address</label>
+            <input id="edit_address" value="${escapeHtml(event.address || "")}">
+          </div>
+
+          <div class="field full">
+            <label>Proposal #</label>
+            <input id="edit_proposal" value="${escapeHtml(event.proposal || "")}">
+          </div>
+
+          <div class="field full">
+            <label>Template Type</label>
+            <input id="edit_template_type" value="${escapeHtml(event.template_type || "")}">
+          </div>
+
+          <div class="field full">
+            <label>Site Time Reference</label>
+            <input id="edit_site_display_time" value="${escapeHtml(event.site_display_time || "")}">
+          </div>
+
+          <div class="field full">
+            <label>Site Time Zone Reference</label>
+            <input id="edit_site_timezone_label" value="${escapeHtml(event.site_timezone_label || "")}">
+          </div>
+        </div>
+
+        <div class="detail-actions">
+          <button class="save-btn" onclick="saveDetails()">Save Changes</button>
+          <button class="delete-btn" onclick="deleteEvent()">Delete Event</button>
+        </div>
+      `;
+
+      toggleArrivalFields();
+    }
+
+    function toggleArrivalFields() {
+      const type = document.getElementById("edit_arrival_type").value;
+      const timeWrap = document.getElementById("edit_time_wrap");
+      const startWrap = document.getElementById("edit_window_start_wrap");
+      const endWrap = document.getElementById("edit_window_end_wrap");
+
+      if (type === "window") {
+        timeWrap.style.display = "none";
+        startWrap.style.display = "block";
+        endWrap.style.display = "block";
+      } else {
+        timeWrap.style.display = "block";
+        startWrap.style.display = "none";
+        endWrap.style.display = "none";
+      }
+    }
+
+    async function saveDetails() {
+      if (!selectedEvent) return;
+
+      const status = document.getElementById("edit_status").value;
+      const arrivalType = document.getElementById("edit_arrival_type").value;
+      const time = document.getElementById("edit_time").value;
+      const windowStart = document.getElementById("edit_window_start").value;
+      const windowEnd = document.getElementById("edit_window_end").value;
+
+      const payload = {
+        client: document.getElementById("edit_client").value,
+        site: document.getElementById("edit_site").value,
+        date: document.getElementById("edit_date").value,
+        site_date: document.getElementById("edit_site_date").value,
+        arrival_type: arrivalType,
+        time: time,
+        window_start: windowStart,
+        window_end: windowEnd,
+        displayTime: arrivalType === "window" ? `${windowStart} - ${windowEnd}` : time,
+        technician: document.getElementById("edit_technician").value,
+        technician_phone: document.getElementById("edit_technician_phone").value,
+        task_id: document.getElementById("edit_task_id").value,
+        project_type: document.getElementById("edit_project_type").value,
+        check_in_time: document.getElementById("edit_check_in_time").value,
+        check_out_time: document.getElementById("edit_check_out_time").value,
+        contact_name: document.getElementById("edit_contact_name").value,
+        contact_phone: document.getElementById("edit_contact_phone").value,
+        contact_email: document.getElementById("edit_contact_email").value,
+        address: document.getElementById("edit_address").value,
+        proposal: document.getElementById("edit_proposal").value,
+        template_type: document.getElementById("edit_template_type").value,
+        site_display_time: document.getElementById("edit_site_display_time").value,
+        site_timezone: selectedEvent.site_timezone || "",
+        site_timezone_label: document.getElementById("edit_site_timezone_label").value,
+        checked_in: status === "Checked In" || status === "Checked Out",
+        checked_out: status === "Checked Out"
+      };
+
+      const response = await fetch(`${API_URL}/events/${selectedEvent.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+
+      if (!response.ok) {
+        alert("Unable to update calendar event.");
+        return;
+      }
+
+      await fetchEvents();
+      renderCalendar();
+      const fresh = eventsCache.find(e => e.id === selectedEvent.id);
+      if (fresh) {
+        openDetails(fresh);
+      }
+      alert("Calendar event updated.");
+    }
+
+    async function deleteEvent() {
+      if (!selectedEvent) return;
+
+      const response = await fetch(`${API_URL}/events/${selectedEvent.id}`, {
+        method: "DELETE"
+      });
+
+      if (!response.ok) {
+        alert("Unable to delete calendar event.");
+        return;
+      }
+
+      selectedEvent = null;
+      await fetchEvents();
+      renderCalendar();
+      document.getElementById("details_view").innerHTML = `Click any calendar event to view and edit its full details.`;
+      alert("Calendar event deleted.");
+    }
+
+    async function initPage() {
+      await fetchEvents();
+      renderCalendar();
+    }
+
+    initPage();
+  </script>
+</body>
+</html>

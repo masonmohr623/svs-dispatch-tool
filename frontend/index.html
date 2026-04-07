@@ -1,0 +1,836 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SVS Dispatch Dashboard</title>
+  <style>
+    :root {
+      --svs-dark: #243746;
+      --svs-blue: #49697c;
+      --svs-accent: #6f8ea0;
+      --svs-soft: #edf3f6;
+      --svs-border: #c7d4dc;
+      --svs-bg: #f4f7f9;
+      --text: #1f2a33;
+      --muted: #647784;
+      --white: #ffffff;
+      --success: #2f7d4a;
+      --warning: #8a8f96;
+      --complete: #3f6f92;
+      --shadow: 0 14px 34px rgba(36, 55, 70, 0.12);
+      --shadow-hover: 0 18px 40px rgba(36, 55, 70, 0.18);
+      --radius-lg: 26px;
+      --radius-md: 18px;
+      --radius-sm: 14px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: Arial, Helvetica, sans-serif;
+      background:
+        radial-gradient(circle at top left, rgba(111, 142, 160, 0.18), transparent 26%),
+        radial-gradient(circle at top right, rgba(73, 105, 124, 0.16), transparent 24%),
+        linear-gradient(180deg, #eef4f7 0%, #e7eef3 100%);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    .page {
+      max-width: 1420px;
+      margin: 0 auto;
+      padding: 26px 20px 44px;
+    }
+
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 18px;
+      padding: 20px 24px;
+      border-radius: var(--radius-lg);
+      background: rgba(255,255,255,0.92);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(199, 212, 220, 0.95);
+      box-shadow: var(--shadow);
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      min-width: 0;
+    }
+
+    .brand img {
+      width: 84px;
+      height: 84px;
+      object-fit: contain;
+      background: #fff;
+      border-radius: 18px;
+      padding: 8px;
+      border: 1px solid var(--svs-border);
+      box-shadow: 0 8px 20px rgba(36, 55, 70, 0.1);
+      flex-shrink: 0;
+    }
+
+    .brand-text h1 {
+      margin: 0;
+      font-size: 31px;
+      color: var(--svs-dark);
+      line-height: 1.15;
+    }
+
+    .brand-text p {
+      margin: 7px 0 0;
+      color: var(--svs-blue);
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+
+    .topbar-right {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .pill {
+      background: linear-gradient(135deg, var(--svs-dark), var(--svs-blue));
+      color: white;
+      border-radius: 999px;
+      padding: 11px 16px;
+      font-size: 13px;
+      font-weight: 700;
+      box-shadow: 0 10px 22px rgba(36, 55, 70, 0.16);
+    }
+
+    .nav-btn {
+      border: none;
+      border-radius: 14px;
+      padding: 12px 16px;
+      background: var(--svs-soft);
+      color: var(--svs-dark);
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      border: 1px solid var(--svs-border);
+      transition: 0.18s ease;
+    }
+
+    .nav-btn:hover {
+      background: #dfe9ee;
+      transform: translateY(-1px);
+    }
+
+    .hero {
+      position: relative;
+      overflow: hidden;
+      border-radius: 30px;
+      background: linear-gradient(135deg, var(--svs-dark) 0%, var(--svs-blue) 58%, var(--svs-accent) 100%);
+      color: white;
+      padding: 42px 38px;
+      box-shadow: var(--shadow);
+      margin-bottom: 24px;
+    }
+
+    .hero::before,
+    .hero::after {
+      content: "";
+      position: absolute;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.08);
+      pointer-events: none;
+    }
+
+    .hero::before {
+      width: 270px;
+      height: 270px;
+      top: -80px;
+      right: -55px;
+    }
+
+    .hero::after {
+      width: 170px;
+      height: 170px;
+      bottom: -55px;
+      right: 130px;
+    }
+
+    .hero-content {
+      position: relative;
+      z-index: 1;
+      max-width: 860px;
+    }
+
+    .hero-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 16px;
+      padding: 8px 12px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.1);
+      border: 1px solid rgba(255,255,255,0.16);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.9px;
+      text-transform: uppercase;
+      color: #dde9f0;
+    }
+
+    .hero h2 {
+      margin: 0 0 14px;
+      font-size: 42px;
+      line-height: 1.08;
+    }
+
+    .hero p {
+      margin: 0;
+      max-width: 760px;
+      line-height: 1.7;
+      color: #e5edf2;
+      font-size: 16px;
+    }
+
+    .hero-actions {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-top: 22px;
+    }
+
+    .hero-btn {
+      border: none;
+      border-radius: 14px;
+      padding: 13px 18px;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: 0.18s ease;
+    }
+
+    .hero-btn.primary {
+      background: white;
+      color: var(--svs-dark);
+    }
+
+    .hero-btn.secondary {
+      background: rgba(255,255,255,0.1);
+      color: white;
+      border: 1px solid rgba(255,255,255,0.16);
+    }
+
+    .hero-btn:hover {
+      transform: translateY(-1px);
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 18px;
+      margin-bottom: 24px;
+    }
+
+    .stat-card {
+      background: rgba(255,255,255,0.95);
+      border: 1px solid var(--svs-border);
+      border-radius: 22px;
+      padding: 22px;
+      box-shadow: var(--shadow);
+      transition: 0.18s ease;
+    }
+
+    .stat-card:hover {
+      transform: translateY(-3px);
+      box-shadow: var(--shadow-hover);
+    }
+
+    .stat-label {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--svs-blue);
+      text-transform: uppercase;
+      letter-spacing: 0.7px;
+      margin-bottom: 10px;
+    }
+
+    .stat-value {
+      font-size: 34px;
+      font-weight: 700;
+      color: var(--svs-dark);
+      margin-bottom: 8px;
+    }
+
+    .stat-note {
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.55;
+    }
+
+    .main-grid {
+      display: grid;
+      grid-template-columns: 1.08fr 0.92fr;
+      gap: 22px;
+      margin-bottom: 24px;
+    }
+
+    .panel {
+      background: rgba(255,255,255,0.96);
+      border: 1px solid var(--svs-border);
+      border-radius: 24px;
+      padding: 24px;
+      box-shadow: var(--shadow);
+    }
+
+    .panel-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      padding-bottom: 14px;
+      margin-bottom: 16px;
+      border-bottom: 1px solid var(--svs-border);
+      flex-wrap: wrap;
+    }
+
+    .panel-title-wrap h3 {
+      margin: 0;
+      font-size: 26px;
+      color: var(--svs-dark);
+    }
+
+    .panel-title-wrap p {
+      margin: 6px 0 0;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .count-chip {
+      min-width: 38px;
+      height: 38px;
+      padding: 0 12px;
+      border-radius: 999px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      font-weight: 700;
+      color: white;
+      background: linear-gradient(135deg, var(--svs-dark), var(--svs-blue));
+    }
+
+    .job-list {
+      display: grid;
+      gap: 14px;
+      max-height: 560px;
+      overflow-y: auto;
+      padding-right: 4px;
+    }
+
+    .job-list::-webkit-scrollbar {
+      width: 10px;
+    }
+
+    .job-list::-webkit-scrollbar-thumb {
+      background: #c8d4dc;
+      border-radius: 999px;
+    }
+
+    .job-card {
+      border: 1px solid var(--svs-border);
+      border-radius: 18px;
+      overflow: hidden;
+      background: #fbfdfe;
+      transition: 0.18s ease;
+    }
+
+    .job-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 24px rgba(36,55,70,0.12);
+    }
+
+    .job-strip {
+      height: 6px;
+      width: 100%;
+    }
+
+    .job-strip.upcoming { background: var(--warning); }
+    .job-strip.active { background: var(--success); }
+    .job-strip.complete { background: var(--complete); }
+
+    .job-body {
+      padding: 18px;
+    }
+
+    .job-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 10px;
+    }
+
+    .job-title {
+      margin: 0;
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--svs-dark);
+      line-height: 1.35;
+    }
+
+    .job-status {
+      border-radius: 999px;
+      padding: 8px 10px;
+      font-size: 12px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .job-status.upcoming {
+      background: #eff1f3;
+      color: #5a6168;
+      border: 1px solid #d8dde1;
+    }
+
+    .job-status.active {
+      background: #e6f5ec;
+      color: #25633a;
+      border: 1px solid #bee0ca;
+    }
+
+    .job-status.complete {
+      background: #e8f1f8;
+      color: #315b7a;
+      border: 1px solid #c7d9e8;
+    }
+
+    .job-site {
+      margin: 0 0 14px;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.55;
+    }
+
+    .job-details {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .job-detail {
+      background: var(--svs-soft);
+      border: 1px solid #dbe5ea;
+      border-radius: 14px;
+      padding: 10px 12px;
+    }
+
+    .job-detail-label {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--svs-accent);
+      text-transform: uppercase;
+      letter-spacing: 0.45px;
+      margin-bottom: 6px;
+    }
+
+    .job-detail-value {
+      font-size: 14px;
+      color: var(--text);
+      line-height: 1.45;
+      word-break: break-word;
+    }
+
+    .quick-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+    }
+
+    .tool-card {
+      position: relative;
+      overflow: hidden;
+      background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(248,251,253,0.95));
+      border: 1px solid var(--svs-border);
+      border-radius: 22px;
+      padding: 22px;
+      box-shadow: var(--shadow);
+      transition: 0.18s ease;
+      cursor: pointer;
+    }
+
+    .tool-card::before {
+      content: "";
+      position: absolute;
+      inset: 0 0 auto 0;
+      height: 6px;
+      background: linear-gradient(90deg, var(--svs-dark), var(--svs-blue), var(--svs-accent));
+    }
+
+    .tool-card:hover {
+      transform: translateY(-4px);
+      box-shadow: var(--shadow-hover);
+    }
+
+    .tool-icon {
+      width: 56px;
+      height: 56px;
+      border-radius: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 16px;
+      background: linear-gradient(135deg, #eef4f7, #dce7ee);
+      border: 1px solid var(--svs-border);
+      font-size: 24px;
+    }
+
+    .tool-card h4 {
+      margin: 0 0 10px;
+      font-size: 21px;
+      color: var(--svs-dark);
+    }
+
+    .tool-card p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.6;
+      min-height: 66px;
+    }
+
+    .empty-state {
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.6;
+      padding: 8px 0;
+    }
+
+    .footer-note {
+      text-align: center;
+      color: var(--muted);
+      font-size: 13px;
+      padding: 10px 0 0;
+    }
+
+    @media (max-width: 1180px) {
+      .main-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 980px) {
+      .stats-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .quick-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .hero h2 {
+        font-size: 34px;
+      }
+    }
+
+    @media (max-width: 760px) {
+      .page {
+        padding: 18px 14px 34px;
+      }
+
+      .topbar {
+        padding: 18px;
+      }
+
+      .brand img {
+        width: 72px;
+        height: 72px;
+      }
+
+      .brand-text h1 {
+        font-size: 24px;
+      }
+
+      .hero {
+        padding: 30px 24px;
+      }
+
+      .hero h2 {
+        font-size: 30px;
+      }
+
+      .stats-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .job-details {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+
+    <div class="topbar">
+      <div class="brand">
+        <img src="./svs-logo.png" alt="SVS Logo">
+        <div class="brand-text">
+          <h1>Secure Vision Solutions</h1>
+          <p>Dispatch Operations Dashboard</p>
+        </div>
+      </div>
+
+      <div class="topbar-right">
+        <button class="nav-btn" onclick="goTo('calendar.html')">Calendar</button>
+        <button class="nav-btn" onclick="goTo('checkin.html')">Check-In Board</button>
+        <div class="pill">Internal Use Only</div>
+      </div>
+    </div>
+
+    <section class="hero">
+      <div class="hero-content">
+        <div class="hero-tag">SVS Internal Tool</div>
+        <h2>One shared dispatch workspace for your whole team.</h2>
+        <p>
+          This dashboard now pulls live data from the shared backend so appointments, technician contacts,
+          and check-in statuses stay synced for everyone using the site.
+        </p>
+
+        <div class="hero-actions">
+          <button class="hero-btn primary" onclick="goTo('dispatch.html')">Open Survey Template</button>
+          <button class="hero-btn secondary" onclick="goTo('service.html')">Open Service Template</button>
+          <button class="hero-btn secondary" onclick="goTo('installation.html')">Open Installation Template</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-label">Jobs Today</div>
+        <div class="stat-value" id="statTotal">0</div>
+        <div class="stat-note">All jobs currently on today’s shared calendar.</div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-label">Not Checked In</div>
+        <div class="stat-value" id="statUpcoming">0</div>
+        <div class="stat-note">Appointments that still need technician check-in.</div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-label">Checked In</div>
+        <div class="stat-value" id="statActive">0</div>
+        <div class="stat-note">Jobs actively on-site right now.</div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-label">Completed</div>
+        <div class="stat-value" id="statComplete">0</div>
+        <div class="stat-note">Jobs already checked out for today.</div>
+      </div>
+    </section>
+
+    <section class="main-grid">
+      <div class="panel">
+        <div class="panel-head">
+          <div class="panel-title-wrap">
+            <h3>Today’s Jobs</h3>
+            <p>Shared live schedule for today in your local calendar view.</p>
+          </div>
+          <div class="count-chip" id="todayCount">0</div>
+        </div>
+
+        <div class="job-list" id="todayJobs"></div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">
+          <div class="panel-title-wrap">
+            <h3>Workspace</h3>
+            <p>Open the tools your team uses most.</p>
+          </div>
+        </div>
+
+        <div class="quick-grid">
+          <div class="tool-card" onclick="goTo('dispatch.html')">
+            <div class="tool-icon">📋</div>
+            <h4>Survey Template</h4>
+            <p>Create dispatch survey confirmations and save them to the shared calendar.</p>
+          </div>
+
+          <div class="tool-card" onclick="goTo('service.html')">
+            <div class="tool-icon">🛠️</div>
+            <h4>Service Template</h4>
+            <p>Generate service confirmations with exact times or arrival windows.</p>
+          </div>
+
+          <div class="tool-card" onclick="goTo('installation.html')">
+            <div class="tool-icon">📡</div>
+            <h4>Installation Template</h4>
+            <p>Create polished installation confirmations tied to the shared schedule.</p>
+          </div>
+
+          <div class="tool-card" onclick="goTo('technicians.html')">
+            <div class="tool-icon">👷</div>
+            <h4>Technician Contacts</h4>
+            <p>Search, manage, and reuse shared technician contact information quickly.</p>
+          </div>
+
+          <div class="tool-card" onclick="goTo('calendar.html')">
+            <div class="tool-icon">📅</div>
+            <h4>Calendar</h4>
+            <p>Review all upcoming appointments and edit saved scheduling details.</p>
+          </div>
+
+          <div class="tool-card" onclick="goTo('checkin.html')">
+            <div class="tool-icon">✅</div>
+            <h4>Check-In Dashboard</h4>
+            <p>Track technician check-ins and check-outs with shared live timestamp visibility.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="footer-note">
+      Secure Vision Solutions • Shared Dispatch Tool
+    </div>
+  </div>
+
+  <script>
+    const API_URL = "http://127.0.0.1:8000";
+    let eventsCache = [];
+
+    function goTo(page) {
+      window.location.href = page;
+    }
+
+    async function fetchEvents() {
+      const response = await fetch(`${API_URL}/events`);
+      eventsCache = await response.json();
+    }
+
+    function todayString() {
+      const now = new Date();
+      const year = now.getFullYear();
+      const month = String(now.getMonth() + 1).padStart(2, "0");
+      const day = String(now.getDate()).padStart(2, "0");
+      return `${year}-${month}-${day}`;
+    }
+
+    function normalizeStatus(event) {
+      if (event.checked_out) return "Checked Out";
+      if (event.checked_in) return "Checked In";
+      return "Not Checked In";
+    }
+
+    function getStatusClass(status) {
+      if (status === "Checked In") return "active";
+      if (status === "Checked Out") return "complete";
+      return "upcoming";
+    }
+
+    function getDisplayTime(event) {
+      if (event.displayTime && String(event.displayTime).trim()) {
+        return `${event.displayTime} (Local Time)`;
+      }
+      if (event.arrival_type === "window" && event.window_start && event.window_end) {
+        return `${event.window_start} - ${event.window_end} (Local Time)`;
+      }
+      return "No time listed";
+    }
+
+    function escapeHtml(value) {
+      return String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;");
+    }
+
+    function renderJobCard(event) {
+      const status = normalizeStatus(event);
+      const statusClass = getStatusClass(status);
+      const technician = event.technician || "No technician listed";
+      const taskId = event.task_id || "Not added";
+
+      return `
+        <div class="job-card">
+          <div class="job-strip ${statusClass}"></div>
+          <div class="job-body">
+            <div class="job-top">
+              <h4 class="job-title">${escapeHtml(event.client || "No client listed")}</h4>
+              <div class="job-status ${statusClass}">${escapeHtml(status)}</div>
+            </div>
+
+            <p class="job-site">${escapeHtml(event.site || "No site listed")}</p>
+
+            <div class="job-details">
+              <div class="job-detail">
+                <div class="job-detail-label">Your Time</div>
+                <div class="job-detail-value">${escapeHtml(getDisplayTime(event))}</div>
+              </div>
+
+              <div class="job-detail">
+                <div class="job-detail-label">Technician</div>
+                <div class="job-detail-value">${escapeHtml(technician)}</div>
+              </div>
+
+              <div class="job-detail">
+                <div class="job-detail-label">Task ID</div>
+                <div class="job-detail-value">${escapeHtml(taskId)}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderHome() {
+      const today = todayString();
+      const todayEvents = eventsCache.filter(event => event.date === today);
+
+      const upcoming = todayEvents.filter(e => !e.checked_in && !e.checked_out);
+      const active = todayEvents.filter(e => e.checked_in && !e.checked_out);
+      const complete = todayEvents.filter(e => e.checked_out);
+
+      document.getElementById("statTotal").innerText = todayEvents.length;
+      document.getElementById("statUpcoming").innerText = upcoming.length;
+      document.getElementById("statActive").innerText = active.length;
+      document.getElementById("statComplete").innerText = complete.length;
+      document.getElementById("todayCount").innerText = todayEvents.length;
+
+      const todayJobs = document.getElementById("todayJobs");
+
+      if (todayEvents.length === 0) {
+        todayJobs.innerHTML = `<div class="empty-state">No jobs scheduled for today.</div>`;
+        return;
+      }
+
+      const ordered = [...upcoming, ...active, ...complete];
+      todayJobs.innerHTML = ordered.map(renderJobCard).join("");
+    }
+
+    async function initPage() {
+      try {
+        await fetchEvents();
+        renderHome();
+      } catch (error) {
+        document.getElementById("todayJobs").innerHTML = `<div class="empty-state">Unable to load shared dashboard data from the backend.</div>`;
+      }
+    }
+
+    initPage();
+  </script>
+</body>
+</html>
