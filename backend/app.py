@@ -1,859 +1,711 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Check-In Dashboard</title>
-  <style>
-    :root {
-      --svs-dark: #243746;
-      --svs-blue: #49697c;
-      --svs-accent: #6f8ea0;
-      --svs-soft: #edf3f6;
-      --svs-border: #c7d4dc;
-      --text: #1f2a33;
-      --muted: #647784;
-      --white: #ffffff;
-      --upcoming: #8a8f96;
-      --active: #2f7d4a;
-      --complete: #3f6f92;
-      --danger: #b64c4c;
-      --shadow: 0 14px 34px rgba(36, 55, 70, 0.12);
-      --shadow-hover: 0 18px 40px rgba(36, 55, 70, 0.18);
-    }
-
-    * {
-      box-sizing: border-box;
-    }
-
-    body {
-      margin: 0;
-      font-family: Arial, Helvetica, sans-serif;
-      background:
-        radial-gradient(circle at top left, rgba(111, 142, 160, 0.18), transparent 26%),
-        radial-gradient(circle at top right, rgba(73, 105, 124, 0.16), transparent 24%),
-        linear-gradient(180deg, #eef4f7 0%, #e7eef3 100%);
-      color: var(--text);
-      min-height: 100vh;
-    }
-
-    .page {
-      max-width: 1420px;
-      margin: 0 auto;
-      padding: 26px 20px 44px;
-    }
-
-    .topbar {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 18px;
-      padding: 20px 24px;
-      border-radius: 26px;
-      background: rgba(255,255,255,0.92);
-      backdrop-filter: blur(8px);
-      border: 1px solid rgba(199, 212, 220, 0.95);
-      box-shadow: var(--shadow);
-      margin-bottom: 24px;
-      flex-wrap: wrap;
-    }
-
-    .brand {
-      display: flex;
-      align-items: center;
-      gap: 18px;
-      min-width: 0;
-    }
-
-    .brand img {
-      width: 84px;
-      height: 84px;
-      object-fit: contain;
-      background: #fff;
-      border-radius: 18px;
-      padding: 8px;
-      border: 1px solid var(--svs-border);
-      box-shadow: 0 8px 20px rgba(36, 55, 70, 0.1);
-      flex-shrink: 0;
-    }
-
-    .brand-text h1 {
-      margin: 0;
-      font-size: 30px;
-      color: var(--svs-dark);
-      line-height: 1.15;
-    }
-
-    .brand-text p {
-      margin: 7px 0 0;
-      color: var(--svs-blue);
-      font-size: 14px;
-      font-weight: 700;
-      letter-spacing: 0.5px;
-      text-transform: uppercase;
-    }
-
-    .topbar-right {
-      display: flex;
-      gap: 10px;
-      flex-wrap: wrap;
-    }
-
-    .nav-btn {
-      border: none;
-      border-radius: 14px;
-      padding: 12px 16px;
-      background: var(--svs-soft);
-      color: var(--svs-dark);
-      font-size: 14px;
-      font-weight: 700;
-      cursor: pointer;
-      border: 1px solid var(--svs-border);
-      transition: 0.18s ease;
-    }
-
-    .nav-btn:hover {
-      background: #dfe9ee;
-      transform: translateY(-1px);
-    }
-
-    .hero {
-      position: relative;
-      overflow: hidden;
-      border-radius: 30px;
-      background: linear-gradient(135deg, var(--svs-dark) 0%, var(--svs-blue) 58%, var(--svs-accent) 100%);
-      color: white;
-      padding: 34px 32px;
-      box-shadow: var(--shadow);
-      margin-bottom: 24px;
-    }
-
-    .hero::before,
-    .hero::after {
-      content: "";
-      position: absolute;
-      border-radius: 50%;
-      background: rgba(255,255,255,0.08);
-      pointer-events: none;
-    }
-
-    .hero::before {
-      width: 240px;
-      height: 240px;
-      top: -70px;
-      right: -40px;
-    }
-
-    .hero::after {
-      width: 150px;
-      height: 150px;
-      bottom: -45px;
-      right: 110px;
-    }
-
-    .hero-content {
-      position: relative;
-      z-index: 1;
-      max-width: 900px;
-    }
-
-    .hero h2 {
-      margin: 0 0 10px;
-      font-size: 34px;
-      line-height: 1.1;
-    }
-
-    .hero p {
-      margin: 0;
-      color: #e5edf2;
-      line-height: 1.7;
-      font-size: 15px;
-    }
-
-    .stats-grid {
-      display: grid;
-      grid-template-columns: repeat(4, minmax(0, 1fr));
-      gap: 18px;
-      margin-bottom: 24px;
-    }
-
-    .stat-card {
-      background: rgba(255,255,255,0.96);
-      border: 1px solid var(--svs-border);
-      border-radius: 22px;
-      padding: 22px;
-      box-shadow: var(--shadow);
-      transition: 0.18s ease;
-    }
-
-    .stat-card:hover {
-      transform: translateY(-3px);
-      box-shadow: var(--shadow-hover);
-    }
-
-    .stat-label {
-      font-size: 12px;
-      font-weight: 700;
-      color: var(--svs-blue);
-      text-transform: uppercase;
-      letter-spacing: 0.7px;
-      margin-bottom: 10px;
-    }
-
-    .stat-value {
-      font-size: 34px;
-      font-weight: 700;
-      color: var(--svs-dark);
-      margin-bottom: 8px;
-    }
-
-    .stat-note {
-      color: var(--muted);
-      font-size: 14px;
-      line-height: 1.55;
-    }
-
-    .board {
-      display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 22px;
-      align-items: start;
-    }
-
-    .column {
-      background: rgba(255,255,255,0.96);
-      border: 1px solid var(--svs-border);
-      border-radius: 24px;
-      padding: 22px;
-      box-shadow: var(--shadow);
-      min-height: 520px;
-    }
+from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
+from pydantic import BaseModel
+from typing import Optional, List
+from datetime import datetime
+import sqlite3
+import requests
+import os
+
+app = FastAPI(title="SVS Dispatch Backend")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+FRONTEND_DIR = os.path.join(BASE_DIR, "frontend")
+DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "svs_dispatch.db")
+CLICKUP_WEBHOOK_URL = os.environ.get(
+    "CLICKUP_WEBHOOK_URL",
+    "https://hook.us1.make.com/tzham3njl79ucri6lmsd9imvecnft9xq"
+)
+
+
+# -----------------------------
+# DATABASE
+# -----------------------------
+def get_conn():
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    return conn
+
+
+def init_db():
+    conn = get_conn()
+    cur = conn.cursor()
+
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS technicians (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL UNIQUE,
+            phone TEXT NOT NULL
+        )
+    """)
+
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS events (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            client TEXT,
+            site TEXT,
+            address TEXT,
+            technician TEXT,
+            technician_phone TEXT,
+            contact_name TEXT,
+            contact_email TEXT,
+            contact_phone TEXT,
+            proposal TEXT,
+            task_id TEXT,
+            template_type TEXT,
+            project_type TEXT,
+            date TEXT,
+            site_date TEXT,
+            time TEXT,
+            window_start TEXT,
+            window_end TEXT,
+            displayTime TEXT,
+            site_display_time TEXT,
+            site_timezone TEXT,
+            site_timezone_label TEXT,
+            arrival_type TEXT,
+            checked_in INTEGER DEFAULT 0,
+            checked_out INTEGER DEFAULT 0,
+            check_in_time TEXT,
+            check_out_time TEXT
+        )
+    """)
+
+    conn.commit()
+    conn.close()
+
+
+init_db()
+
+
+# -----------------------------
+# MODELS
+# -----------------------------
+class TechnicianIn(BaseModel):
+    name: str
+    phone: str
+
+
+class TechnicianOut(BaseModel):
+    id: int
+    name: str
+    phone: str
+
+
+class EventIn(BaseModel):
+    client: Optional[str] = ""
+    site: Optional[str] = ""
+    address: Optional[str] = ""
+    technician: Optional[str] = ""
+    technician_phone: Optional[str] = ""
+    contact_name: Optional[str] = ""
+    contact_email: Optional[str] = ""
+    contact_phone: Optional[str] = ""
+    proposal: Optional[str] = ""
+    task_id: Optional[str] = ""
+    template_type: Optional[str] = ""
+    project_type: Optional[str] = ""
+    date: Optional[str] = ""
+    site_date: Optional[str] = ""
+    time: Optional[str] = ""
+    window_start: Optional[str] = ""
+    window_end: Optional[str] = ""
+    displayTime: Optional[str] = ""
+    site_display_time: Optional[str] = ""
+    site_timezone: Optional[str] = ""
+    site_timezone_label: Optional[str] = ""
+    arrival_type: Optional[str] = "exact"
+    checked_in: bool = False
+    checked_out: bool = False
+    check_in_time: Optional[str] = ""
+    check_out_time: Optional[str] = ""
+
+
+class EventOut(EventIn):
+    id: int
+
+
+class GenerateTemplateIn(BaseModel):
+    arrival_type: str = "exact"
+    date: str = ""
+    time: str = ""
+    window_start: str = ""
+    window_end: str = ""
+    project_type: str = "ip_camera"
+    tech_name: str = ""
+    tech_phone: str = ""
+    contact_name: str = ""
+    contact_email: str = ""
+    contact_phone: str = ""
+    client: str = ""
+    site: str = ""
+    address: str = ""
+    proposal: Optional[str] = ""
+
+
+class CheckinPayload(BaseModel):
+    task_id: str
+    client: Optional[str] = ""
+    site: Optional[str] = ""
+    technician: Optional[str] = ""
+    check_in_time: Optional[str] = ""
+
+
+class CheckoutPayload(BaseModel):
+    task_id: str
+    client: Optional[str] = ""
+    site: Optional[str] = ""
+    technician: Optional[str] = ""
+    check_out_time: Optional[str] = ""
+
+
+# -----------------------------
+# HELPERS
+# -----------------------------
+def row_to_dict(row):
+    return dict(row)
+
+
+def normalize_event_row(row):
+    data = dict(row)
+    data["checked_in"] = bool(data["checked_in"])
+    data["checked_out"] = bool(data["checked_out"])
+    return data
+
+
+def pretty_date(date_str: str) -> str:
+    if not date_str:
+        return ""
+    try:
+        dt = datetime.strptime(date_str, "%Y-%m-%d")
+        day = dt.day
+        if 10 <= day % 100 <= 20:
+            suffix = "th"
+        else:
+            suffix = {1: "st", 2: "nd", 3: "rd"}.get(day % 10, "th")
+        return f"{dt.strftime('%A')}, {dt.strftime('%B')} {day}{suffix}"
+    except Exception:
+        return date_str
+
+
+def project_scope_label(project_type: str, mode: str) -> str:
+    pt = (project_type or "ip_camera").strip().lower()
+
+    if mode == "survey":
+        if pt == "access_control":
+            return "Site Survey for Access Control Installation"
+        if pt == "both":
+            return "Site Survey for IP Camera and Access Control Installation"
+        return "Site Survey for IP Camera Installation"
+
+    if mode == "service":
+        if pt == "access_control":
+            return "Service Access Control System"
+        if pt == "both":
+            return "Service IP Camera and Access Control System"
+        return "Service IP Camera System"
+
+    if mode == "installation":
+        if pt == "access_control":
+            return "Access Control Installation"
+        if pt == "both":
+            return "IP Camera and Access Control Installation"
+        return "IP Camera Installation"
+
+    return ""
+
+
+def subject_prefix(project_type: str, mode: str) -> str:
+    pt = (project_type or "ip_camera").strip().lower()
+
+    if mode == "dispatch":
+        if pt == "access_control":
+            return "SCW Access Control Site Survey Walkthrough Confirmed"
+        if pt == "both":
+            return "SCW IP Camera / Access Control Site Survey Walkthrough Confirmed"
+        return "SCW IP Camera Site Survey Walkthrough Confirmed"
 
-    .column-head {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 12px;
-      padding-bottom: 14px;
-      margin-bottom: 16px;
-      border-bottom: 1px solid var(--svs-border);
-      flex-wrap: wrap;
-    }
-
-    .column-head h3 {
-      margin: 0;
-      font-size: 24px;
-      color: var(--svs-dark);
-    }
-
-    .column-head p {
-      margin: 6px 0 0;
-      color: var(--muted);
-      font-size: 14px;
-    }
-
-    .count-chip {
-      min-width: 38px;
-      height: 38px;
-      padding: 0 12px;
-      border-radius: 999px;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 14px;
-      font-weight: 700;
-      color: white;
-    }
-
-    .count-chip.upcoming {
-      background: var(--upcoming);
-    }
-
-    .count-chip.active {
-      background: var(--active);
-    }
-
-    .count-chip.complete {
-      background: var(--complete);
-    }
+    if mode == "service":
+        if pt == "access_control":
+            return "SCW Access Control Service Confirmed"
+        if pt == "both":
+            return "SCW IP Camera / Access Control Service Confirmed"
+        return "SCW IP Camera Service Confirmed"
 
-    .job-list {
-      display: grid;
-      gap: 14px;
-    }
+    if mode == "installation":
+        if pt == "access_control":
+            return "SCW Access Control Installation Confirmed"
+        if pt == "both":
+            return "SCW IP Camera / Access Control Installation Confirmed"
+        return "SCW IP Camera Installation Confirmed"
 
-    .job-card {
-      border: 1px solid var(--svs-border);
-      border-radius: 18px;
-      overflow: hidden;
-      background: #fbfdfe;
-      transition: 0.18s ease;
-    }
+    return "SCW Confirmation"
 
-    .job-card:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 10px 24px rgba(36,55,70,0.12);
-    }
 
-    .job-strip {
-      height: 6px;
-      width: 100%;
-    }
+def time_phrase(data: GenerateTemplateIn) -> str:
+    if data.arrival_type == "window":
+        return f"with an Arrival Window of {data.window_start} - {data.window_end} (Local Time)"
+    return f"at {data.time} (Local Time)"
 
-    .job-strip.upcoming {
-      background: var(--upcoming);
-    }
 
-    .job-strip.active {
-      background: var(--active);
-    }
+def greeting_for_time(data: GenerateTemplateIn) -> str:
+    sample = (data.time or data.window_start or "").upper()
+    if "AM" in sample:
+        return "morning"
+    return "afternoon"
 
-    .job-strip.complete {
-      background: var(--complete);
-    }
 
-    .job-body {
-      padding: 18px;
-    }
+def build_subject(data: GenerateTemplateIn, mode: str) -> str:
+    return f"{subject_prefix(data.project_type, mode)} for {pretty_date(data.date)} {time_phrase(data)}"
 
-    .job-top {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      gap: 12px;
-      flex-wrap: wrap;
-      margin-bottom: 10px;
-    }
 
-    .job-title {
-      margin: 0;
-      font-size: 18px;
-      font-weight: 700;
-      color: var(--svs-dark);
-      line-height: 1.35;
-    }
+def build_dispatch_message(data: GenerateTemplateIn) -> str:
+    return f"""Good {greeting_for_time(data)} everyone,
 
-    .job-status {
-      border-radius: 999px;
-      padding: 8px 10px;
-      font-size: 12px;
-      font-weight: 700;
-      white-space: nowrap;
-    }
+The technician is confirmed for {pretty_date(data.date)} {time_phrase(data)} for arrival on site.
 
-    .job-status.upcoming {
-      background: #eff1f3;
-      color: #5a6168;
-      border: 1px solid #d8dde1;
-    }
+Please have a dedicated Point of Contact available once we arrive on-site. If at that time you have any concerns with blind spots covered by our proposal, our technician can make note of it and your SCW account executive will reach out to discuss additional coverage options.
 
-    .job-status.active {
-      background: #e6f5ec;
-      color: #25633a;
-      border: 1px solid #bee0ca;
-    }
+Technician information
+{data.tech_name}
+Phone: {data.tech_phone}
 
-    .job-status.complete {
-      background: #e8f1f8;
-      color: #315b7a;
-      border: 1px solid #c7d9e8;
-    }
+Project Scope
+{project_scope_label(data.project_type, "survey")}
 
-    .job-site {
-      margin: 0 0 14px;
-      color: var(--muted);
-      font-size: 14px;
-      line-height: 1.55;
-    }
+Site Contact Information
+Name: {data.contact_name}
+Email: {data.contact_email}
+Phone: {data.contact_phone}
 
-    .job-details {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 10px;
-      margin-bottom: 14px;
-    }
+Client: {data.client}
+Site: {data.site}
+Project Address: {data.address}
 
-    .job-detail {
-      background: var(--svs-soft);
-      border: 1px solid #dbe5ea;
-      border-radius: 14px;
-      padding: 10px 12px;
-    }
+Proposal #: {data.proposal}
 
-    .job-detail-label {
-      font-size: 11px;
-      font-weight: 700;
-      color: var(--svs-accent);
-      text-transform: uppercase;
-      letter-spacing: 0.45px;
-      margin-bottom: 6px;
-    }
+If any of the information above needs correction, please email me as soon as possible.
 
-    .job-detail-value {
-      font-size: 14px;
-      color: var(--text);
-      line-height: 1.45;
-      word-break: break-word;
-    }
+Thank you,"""
 
-    .task-row {
-      margin-bottom: 14px;
-      font-size: 12px;
-      color: #6a7a84;
-      background: #f3f6f8;
-      border: 1px dashed #c8d4dc;
-      border-radius: 12px;
-      padding: 8px 10px;
-      word-break: break-all;
-    }
 
-    .button-row {
-      display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
-    }
+def build_service_message(data: GenerateTemplateIn) -> str:
+    return f"""Good {greeting_for_time(data)} everyone,
 
-    .mini-btn {
-      border: none;
-      border-radius: 12px;
-      padding: 11px 13px;
-      font-size: 13px;
-      font-weight: 700;
-      cursor: pointer;
-      transition: 0.18s ease;
-    }
+The technician is confirmed for {pretty_date(data.date)} {time_phrase(data)} for arrival on site.
 
-    .mini-btn.checkin {
-      background: #e6f5ec;
-      color: #25633a;
-      border: 1px solid #bee0ca;
-    }
+Technician information
+{data.tech_name}
+Phone: {data.tech_phone}
 
-    .mini-btn.checkout {
-      background: #e8f1f8;
-      color: #315b7a;
-      border: 1px solid #c7d9e8;
-    }
+Project Scope
+{project_scope_label(data.project_type, "service")}
 
-    .mini-btn.reset {
-      background: #f8e7e7;
-      color: var(--danger);
-      border: 1px solid #efc7c7;
-    }
+Site Contact Information
+Name: {data.contact_name}
+Email: {data.contact_email}
+Phone: {data.contact_phone}
 
-    .mini-btn:disabled {
-      opacity: 0.45;
-      cursor: not-allowed;
-    }
+Client: {data.client}
+Site: {data.site}
+Project Address: {data.address}
 
-    .mini-btn:hover:not(:disabled) {
-      transform: translateY(-1px);
-    }
+If any of the information above needs correction, please email me as soon as possible.
 
-    .empty-state {
-      color: var(--muted);
-      font-size: 14px;
-      line-height: 1.6;
-      padding: 8px 0;
-    }
+Thank you,"""
 
-    @media (max-width: 1180px) {
-      .board {
-        grid-template-columns: 1fr;
-      }
-
-      .column {
-        min-height: auto;
-      }
-    }
 
-    @media (max-width: 980px) {
-      .stats-grid {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-      }
-    }
+def build_installation_message(data: GenerateTemplateIn) -> str:
+    return f"""Good {greeting_for_time(data)} everyone,
 
-    @media (max-width: 760px) {
-      .page {
-        padding: 18px 14px 34px;
-      }
-
-      .topbar {
-        padding: 18px;
-      }
-
-      .brand img {
-        width: 72px;
-        height: 72px;
-      }
-
-      .brand-text h1 {
-        font-size: 24px;
-      }
-
-      .hero {
-        padding: 28px 22px;
-      }
-
-      .hero h2 {
-        font-size: 28px;
-      }
-
-      .stats-grid {
-        grid-template-columns: 1fr;
-      }
-
-      .job-details {
-        grid-template-columns: 1fr;
-      }
-    }
-  </style>
-</head>
-<body>
-  <div class="page">
-
-    <div class="topbar">
-      <div class="brand">
-        <img src="./svs-logo.png" alt="SVS Logo">
-        <div class="brand-text">
-          <h1>Check-In Dashboard</h1>
-          <p>Secure Vision Solutions</p>
-        </div>
-      </div>
-
-      <div class="topbar-right">
-        <button class="nav-btn" onclick="goTo('index.html')">Home</button>
-        <button class="nav-btn" onclick="goTo('dispatch.html')">Survey</button>
-        <button class="nav-btn" onclick="goTo('service.html')">Service</button>
-        <button class="nav-btn" onclick="goTo('installation.html')">Installation</button>
-        <button class="nav-btn" onclick="goTo('calendar.html')">Calendar</button>
-        <button class="nav-btn" onclick="goTo('technicians.html')">Technicians</button>
-      </div>
-    </div>
-
-    <div class="hero">
-      <div class="hero-content">
-        <h2>Track technician arrivals and departures with saved local timestamps.</h2>
-        <p>
-          This board shows today’s jobs using your calendar time, and check-in / check-out updates will store timestamps with
-          <strong>(Local Time)</strong> attached while sending the matching comments through your backend webhook.
-        </p>
-      </div>
-    </div>
-
-    <section class="stats-grid">
-      <div class="stat-card">
-        <div class="stat-label">Jobs Today</div>
-        <div class="stat-value" id="statTotal">0</div>
-        <div class="stat-note">All appointments on today’s schedule.</div>
-      </div>
-
-      <div class="stat-card">
-        <div class="stat-label">Not Checked In</div>
-        <div class="stat-value" id="statUpcoming">0</div>
-        <div class="stat-note">Jobs still waiting for technician arrival.</div>
-      </div>
-
-      <div class="stat-card">
-        <div class="stat-label">Checked In</div>
-        <div class="stat-value" id="statActive">0</div>
-        <div class="stat-note">Appointments currently active on-site.</div>
-      </div>
-
-      <div class="stat-card">
-        <div class="stat-label">Completed</div>
-        <div class="stat-value" id="statComplete">0</div>
-        <div class="stat-note">Jobs already checked out today.</div>
-      </div>
-    </section>
-
-    <section class="board">
-      <div class="column">
-        <div class="column-head">
-          <div>
-            <h3>Upcoming</h3>
-            <p>Appointments not checked in yet.</p>
-          </div>
-          <div class="count-chip upcoming" id="upcomingCount">0</div>
-        </div>
-        <div class="job-list" id="upcomingList"></div>
-      </div>
-
-      <div class="column">
-        <div class="column-head">
-          <div>
-            <h3>Active</h3>
-            <p>Technicians currently on-site.</p>
-          </div>
-          <div class="count-chip active" id="activeCount">0</div>
-        </div>
-        <div class="job-list" id="activeList"></div>
-      </div>
-
-      <div class="column">
-        <div class="column-head">
-          <div>
-            <h3>Completed</h3>
-            <p>Jobs checked out for today.</p>
-          </div>
-          <div class="count-chip complete" id="completeCount">0</div>
-        </div>
-        <div class="job-list" id="completeList"></div>
-      </div>
-    </section>
-  </div>
-
-  <script>
-    const API_URL = "http://127.0.0.1:8000";
-
-    function goTo(page) {
-      window.location.href = page;
-    }
+The technician is confirmed for {pretty_date(data.date)} {time_phrase(data)} for arrival on site.
 
-    function loadEvents() {
-      return JSON.parse(localStorage.getItem("events") || "[]");
-    }
+Please have a dedicated Point of Contact available on-site. We ask that the Point of Contact walk the site with the technician prior to work beginning so all final camera or device locations can be confirmed before installation starts. Any requested changes should be discussed before work begins.
 
-    function saveEvents(events) {
-      localStorage.setItem("events", JSON.stringify(events));
-    }
+Technician information
+{data.tech_name}
+Phone: {data.tech_phone}
 
-    function todayString() {
-      const now = new Date();
-      const year = now.getFullYear();
-      const month = String(now.getMonth() + 1).padStart(2, "0");
-      const day = String(now.getDate()).padStart(2, "0");
-      return `${year}-${month}-${day}`;
-    }
+Project Scope
+{project_scope_label(data.project_type, "installation")}
 
-    function normalizeStatus(event) {
-      if (event.checked_out) return "Checked Out";
-      if (event.checked_in) return "Checked In";
-      return "Not Checked In";
-    }
+Site Contact Information
+Name: {data.contact_name}
+Email: {data.contact_email}
+Phone: {data.contact_phone}
 
-    function getStatusClass(status) {
-      if (status === "Checked In") return "active";
-      if (status === "Checked Out") return "complete";
-      return "upcoming";
-    }
+Client: {data.client}
+Site: {data.site}
+Project Address: {data.address}
 
-    function getDisplayTime(event) {
-      if (event.displayTime && event.displayTime.trim()) {
-        return `${event.displayTime} (Local Time)`;
-      }
-      if (event.arrival_type === "window" && event.window_start && event.window_end) {
-        return `${event.window_start} - ${event.window_end} (Local Time)`;
-      }
-      return "No time listed";
-    }
+Proposal #: {data.proposal}
 
-    function escapeHtml(value) {
-      return String(value ?? "")
-        .replace(/&/g, "&amp;")
-        .replace(/"/g, "&quot;")
-        .replace(/'/g, "&#39;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;");
-    }
+If any of the information above needs correction, please email me as soon as possible.
 
-    function currentLocalTime() {
-      return new Date().toLocaleTimeString([], {
-        hour: "numeric",
-        minute: "2-digit"
-      });
-    }
+Thank you,"""
 
-    function sortEvents(events) {
-      return events.sort((a, b) => {
-        const aTime = (a.displayTime || a.time || "").toLowerCase();
-        const bTime = (b.displayTime || b.time || "").toLowerCase();
-        return aTime.localeCompare(bTime);
-      });
-    }
 
-    async function sendCheckIn(index) {
-      const events = loadEvents();
-      const event = events[index];
-      if (!event) return;
-
-      if (!event.task_id) {
-        alert("This appointment is missing a ClickUp Task ID.");
-        return;
-      }
-
-      const time = currentLocalTime();
-      event.checked_in = true;
-      event.checked_out = false;
-      event.check_in_time = time;
-      saveEvents(events);
-      renderBoard();
-
-      try {
-        const response = await fetch(`${API_URL}/send-checkin`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            task_id: event.task_id,
-            client: event.client || "",
-            site: event.site || "",
-            technician: event.technician || "",
-            check_in_time: time
-          })
-        });
-
-        const data = await response.json();
-        if (!(data.status_code >= 200 && data.status_code < 300)) {
-          alert("Check-in timestamp saved, but webhook did not confirm success.");
+# -----------------------------
+# HEALTH / ROOT
+# -----------------------------
+@app.get("/health")
+def health():
+    return {"status": "ok"}
+
+
+# -----------------------------
+# TECHNICIANS
+# -----------------------------
+@app.get("/technicians", response_model=List[TechnicianOut])
+def get_technicians():
+    conn = get_conn()
+    rows = conn.execute("SELECT * FROM technicians ORDER BY name COLLATE NOCASE").fetchall()
+    conn.close()
+    return [row_to_dict(r) for r in rows]
+
+
+@app.post("/technicians", response_model=TechnicianOut)
+def add_technician(tech: TechnicianIn):
+    conn = get_conn()
+    cur = conn.cursor()
+
+    existing = cur.execute(
+        "SELECT * FROM technicians WHERE LOWER(name) = LOWER(?)",
+        (tech.name.strip(),)
+    ).fetchone()
+
+    if existing:
+        conn.close()
+        return row_to_dict(existing)
+
+    cur.execute(
+        "INSERT INTO technicians (name, phone) VALUES (?, ?)",
+        (tech.name.strip(), tech.phone.strip())
+    )
+    conn.commit()
+
+    row = cur.execute("SELECT * FROM technicians WHERE id = ?", (cur.lastrowid,)).fetchone()
+    conn.close()
+    return row_to_dict(row)
+
+
+@app.put("/technicians/{tech_id}", response_model=TechnicianOut)
+def update_technician(tech_id: int, tech: TechnicianIn):
+    conn = get_conn()
+    cur = conn.cursor()
+
+    existing = cur.execute("SELECT * FROM technicians WHERE id = ?", (tech_id,)).fetchone()
+    if not existing:
+        conn.close()
+        raise HTTPException(status_code=404, detail="Technician not found")
+
+    cur.execute(
+        "UPDATE technicians SET name = ?, phone = ? WHERE id = ?",
+        (tech.name.strip(), tech.phone.strip(), tech_id)
+    )
+    conn.commit()
+
+    row = cur.execute("SELECT * FROM technicians WHERE id = ?", (tech_id,)).fetchone()
+    conn.close()
+    return row_to_dict(row)
+
+
+@app.delete("/technicians/{tech_id}")
+def delete_technician(tech_id: int):
+    conn = get_conn()
+    cur = conn.cursor()
+
+    existing = cur.execute("SELECT * FROM technicians WHERE id = ?", (tech_id,)).fetchone()
+    if not existing:
+        conn.close()
+        raise HTTPException(status_code=404, detail="Technician not found")
+
+    cur.execute("DELETE FROM technicians WHERE id = ?", (tech_id,))
+    conn.commit()
+    conn.close()
+
+    return {"status": "deleted"}
+
+
+# -----------------------------
+# EVENTS
+# -----------------------------
+@app.get("/events", response_model=List[EventOut])
+def get_events():
+    conn = get_conn()
+    rows = conn.execute("SELECT * FROM events ORDER BY date, COALESCE(time, ''), COALESCE(displayTime, '')").fetchall()
+    conn.close()
+    return [normalize_event_row(r) for r in rows]
+
+
+@app.post("/events", response_model=EventOut)
+def create_event(event: EventIn):
+    conn = get_conn()
+    cur = conn.cursor()
+
+    cur.execute("""
+        INSERT INTO events (
+            client, site, address, technician, technician_phone,
+            contact_name, contact_email, contact_phone, proposal, task_id,
+            template_type, project_type, date, site_date, time,
+            window_start, window_end, displayTime, site_display_time,
+            site_timezone, site_timezone_label, arrival_type,
+            checked_in, checked_out, check_in_time, check_out_time
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    """, (
+        event.client,
+        event.site,
+        event.address,
+        event.technician,
+        event.technician_phone,
+        event.contact_name,
+        event.contact_email,
+        event.contact_phone,
+        event.proposal,
+        event.task_id,
+        event.template_type,
+        event.project_type,
+        event.date,
+        event.site_date,
+        event.time,
+        event.window_start,
+        event.window_end,
+        event.displayTime,
+        event.site_display_time,
+        event.site_timezone,
+        event.site_timezone_label,
+        event.arrival_type,
+        int(bool(event.checked_in)),
+        int(bool(event.checked_out)),
+        event.check_in_time,
+        event.check_out_time
+    ))
+
+    conn.commit()
+    row = cur.execute("SELECT * FROM events WHERE id = ?", (cur.lastrowid,)).fetchone()
+    conn.close()
+    return normalize_event_row(row)
+
+
+@app.put("/events/{event_id}", response_model=EventOut)
+def update_event(event_id: int, event: EventIn):
+    conn = get_conn()
+    cur = conn.cursor()
+
+    existing = cur.execute("SELECT * FROM events WHERE id = ?", (event_id,)).fetchone()
+    if not existing:
+        conn.close()
+        raise HTTPException(status_code=404, detail="Event not found")
+
+    cur.execute("""
+        UPDATE events SET
+            client = ?, site = ?, address = ?, technician = ?, technician_phone = ?,
+            contact_name = ?, contact_email = ?, contact_phone = ?, proposal = ?, task_id = ?,
+            template_type = ?, project_type = ?, date = ?, site_date = ?, time = ?,
+            window_start = ?, window_end = ?, displayTime = ?, site_display_time = ?,
+            site_timezone = ?, site_timezone_label = ?, arrival_type = ?,
+            checked_in = ?, checked_out = ?, check_in_time = ?, check_out_time = ?
+        WHERE id = ?
+    """, (
+        event.client,
+        event.site,
+        event.address,
+        event.technician,
+        event.technician_phone,
+        event.contact_name,
+        event.contact_email,
+        event.contact_phone,
+        event.proposal,
+        event.task_id,
+        event.template_type,
+        event.project_type,
+        event.date,
+        event.site_date,
+        event.time,
+        event.window_start,
+        event.window_end,
+        event.displayTime,
+        event.site_display_time,
+        event.site_timezone,
+        event.site_timezone_label,
+        event.arrival_type,
+        int(bool(event.checked_in)),
+        int(bool(event.checked_out)),
+        event.check_in_time,
+        event.check_out_time,
+        event_id
+    ))
+
+    conn.commit()
+    row = cur.execute("SELECT * FROM events WHERE id = ?", (event_id,)).fetchone()
+    conn.close()
+    return normalize_event_row(row)
+
+
+@app.delete("/events/{event_id}")
+def delete_event(event_id: int):
+    conn = get_conn()
+    cur = conn.cursor()
+
+    existing = cur.execute("SELECT * FROM events WHERE id = ?", (event_id,)).fetchone()
+    if not existing:
+        conn.close()
+        raise HTTPException(status_code=404, detail="Event not found")
+
+    cur.execute("DELETE FROM events WHERE id = ?", (event_id,))
+    conn.commit()
+    conn.close()
+
+    return {"status": "deleted"}
+
+
+# -----------------------------
+# TEMPLATE GENERATION
+# -----------------------------
+@app.post("/generate-dispatch")
+def generate_dispatch(data: GenerateTemplateIn):
+    return {
+        "subject": build_subject(data, "dispatch"),
+        "message": build_dispatch_message(data)
+    }
+
+
+@app.post("/generate-service")
+def generate_service(data: GenerateTemplateIn):
+    return {
+        "subject": build_subject(data, "service"),
+        "message": build_service_message(data)
+    }
+
+
+@app.post("/generate-installation")
+def generate_installation(data: GenerateTemplateIn):
+    return {
+        "subject": build_subject(data, "installation"),
+        "message": build_installation_message(data)
+    }
+
+
+# -----------------------------
+# CHECK-IN / CHECK-OUT WEBHOOKS
+# -----------------------------
+@app.post("/send-checkin")
+def send_checkin(payload: CheckinPayload):
+    comment = f"Status Update: The technician is on-site and checked in at {payload.check_in_time} (Local Time)."
+
+    body = {
+        "task_id": payload.task_id,
+        "type": "checkin",
+        "comment": comment,
+        "client": payload.client,
+        "site": payload.site,
+        "technician": payload.technician,
+        "check_in_time": payload.check_in_time
+    }
+
+    try:
+        r = requests.post(CLICKUP_WEBHOOK_URL, json=body, timeout=20)
+        return {
+            "status": "sent",
+            "status_code": r.status_code,
+            "response_text": r.text[:1000]
         }
-      } catch (error) {
-        alert("Check-in timestamp saved locally, but webhook request failed.");
-      }
-    }
-
-    async function sendCheckOut(index) {
-      const events = loadEvents();
-      const event = events[index];
-      if (!event) return;
-
-      if (!event.task_id) {
-        alert("This appointment is missing a ClickUp Task ID.");
-        return;
-      }
-
-      const time = currentLocalTime();
-      event.checked_in = true;
-      event.checked_out = true;
-      event.check_out_time = time;
-      saveEvents(events);
-      renderBoard();
-
-      try {
-        const response = await fetch(`${API_URL}/send-checkout`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            task_id: event.task_id,
-            client: event.client || "",
-            site: event.site || "",
-            technician: event.technician || "",
-            check_out_time: time
-          })
-        });
-
-        const data = await response.json();
-        if (!(data.status_code >= 200 && data.status_code < 300)) {
-          alert("Check-out timestamp saved, but webhook did not confirm success.");
+    except Exception as e:
+        return {
+            "status": "error",
+            "status_code": 500,
+            "response_text": str(e)
         }
-      } catch (error) {
-        alert("Check-out timestamp saved locally, but webhook request failed.");
-      }
+
+
+@app.post("/send-checkout")
+def send_checkout(payload: CheckoutPayload):
+    comment = (
+        f"Status update: The technician is off-site and checked out at "
+        f"{payload.check_out_time} (Local Time). Survey documents will be available once they have been processed."
+    )
+
+    body = {
+        "task_id": payload.task_id,
+        "type": "checkout",
+        "comment": comment,
+        "client": payload.client,
+        "site": payload.site,
+        "technician": payload.technician,
+        "check_out_time": payload.check_out_time
     }
 
-    function resetStatus(index) {
-      const events = loadEvents();
-      const event = events[index];
-      if (!event) return;
+    try:
+        r = requests.post(CLICKUP_WEBHOOK_URL, json=body, timeout=20)
+        return {
+            "status": "sent",
+            "status_code": r.status_code,
+            "response_text": r.text[:1000]
+        }
+    except Exception as e:
+        return {
+            "status": "error",
+            "status_code": 500,
+            "response_text": str(e)
+        }
 
-      event.checked_in = false;
-      event.checked_out = false;
-      event.check_in_time = "";
-      event.check_out_time = "";
-      saveEvents(events);
-      renderBoard();
-      alert("Appointment status reset.");
-    }
 
-    function renderCard(event, index) {
-      const status = normalizeStatus(event);
-      const statusClass = getStatusClass(status);
+# -----------------------------
+# FRONTEND FILES
+# -----------------------------
+@app.get("/index.html")
+def serve_index():
+    return FileResponse(os.path.join(FRONTEND_DIR, "index.html"))
 
-      return `
-        <div class="job-card">
-          <div class="job-strip ${statusClass}"></div>
-          <div class="job-body">
-            <div class="job-top">
-              <h4 class="job-title">${escapeHtml(event.client || "No client listed")}</h4>
-              <div class="job-status ${statusClass}">${escapeHtml(status)}</div>
-            </div>
 
-            <p class="job-site">${escapeHtml(event.site || "No site listed")}</p>
+@app.get("/dispatch.html")
+def serve_dispatch():
+    return FileResponse(os.path.join(FRONTEND_DIR, "dispatch.html"))
 
-            <div class="job-details">
-              <div class="job-detail">
-                <div class="job-detail-label">Your Time</div>
-                <div class="job-detail-value">${escapeHtml(getDisplayTime(event))}</div>
-              </div>
 
-              <div class="job-detail">
-                <div class="job-detail-label">Technician</div>
-                <div class="job-detail-value">${escapeHtml(event.technician || "No technician listed")}</div>
-              </div>
+@app.get("/service.html")
+def serve_service():
+    return FileResponse(os.path.join(FRONTEND_DIR, "service.html"))
 
-              <div class="job-detail">
-                <div class="job-detail-label">Checked In</div>
-                <div class="job-detail-value">${escapeHtml(event.check_in_time ? `${event.check_in_time} (Local Time)` : "—")}</div>
-              </div>
 
-              <div class="job-detail">
-                <div class="job-detail-label">Checked Out</div>
-                <div class="job-detail-value">${escapeHtml(event.check_out_time ? `${event.check_out_time} (Local Time)` : "—")}</div>
-              </div>
-            </div>
+@app.get("/installation.html")
+def serve_installation():
+    return FileResponse(os.path.join(FRONTEND_DIR, "installation.html"))
 
-            <div class="task-row">
-              <strong>ClickUp Task ID:</strong> ${escapeHtml(event.task_id || "Not added")}
-            </div>
 
-            <div class="button-row">
-              <button class="mini-btn checkin" onclick="sendCheckIn(${index})" ${status !== "Not Checked In" ? "disabled" : ""}>Check In</button>
-              <button class="mini-btn checkout" onclick="sendCheckOut(${index})" ${status !== "Checked In" ? "disabled" : ""}>Check Out</button>
-              <button class="mini-btn reset" onclick="resetStatus(${index})" ${status === "Not Checked In" ? "disabled" : ""}>Reset</button>
-            </div>
-          </div>
-        </div>
-      `;
-    }
+@app.get("/calendar.html")
+def serve_calendar():
+    return FileResponse(os.path.join(FRONTEND_DIR, "calendar.html"))
 
-    function renderBoard() {
-      const events = loadEvents();
-      const today = todayString();
 
-      const todayEvents = events
-        .map((event, index) => ({ event, index }))
-        .filter(item => item.event.date === today);
+@app.get("/checkin.html")
+def serve_checkin():
+    return FileResponse(os.path.join(FRONTEND_DIR, "checkin.html"))
 
-      const upcoming = sortEvents(todayEvents.filter(item => !item.event.checked_in && !item.event.checked_out));
-      const active = sortEvents(todayEvents.filter(item => item.event.checked_in && !item.event.checked_out));
-      const complete = sortEvents(todayEvents.filter(item => item.event.checked_out));
 
-      document.getElementById("statTotal").innerText = todayEvents.length;
-      document.getElementById("statUpcoming").innerText = upcoming.length;
-      document.getElementById("statActive").innerText = active.length;
-      document.getElementById("statComplete").innerText = complete.length;
+@app.get("/technicians.html")
+def serve_technicians():
+    return FileResponse(os.path.join(FRONTEND_DIR, "technicians.html"))
 
-      document.getElementById("upcomingCount").innerText = upcoming.length;
-      document.getElementById("activeCount").innerText = active.length;
-      document.getElementById("completeCount").innerText = complete.length;
 
-      const upcomingList = document.getElementById("upcomingList");
-      const activeList = document.getElementById("activeList");
-      const completeList = document.getElementById("completeList");
+@app.get("/")
+def serve_home():
+    return FileResponse(os.path.join(FRONTEND_DIR, "index.html"))
 
-      upcomingList.innerHTML = upcoming.length
-        ? upcoming.map(item => renderCard(item.event, item.index)).join("")
-        : `<div class="empty-state">No upcoming appointments for today.</div>`;
 
-      activeList.innerHTML = active.length
-        ? active.map(item => renderCard(item.event, item.index)).join("")
-        : `<div class="empty-state">No active jobs right now.</div>`;
-
-      completeList.innerHTML = complete.length
-        ? complete.map(item => renderCard(item.event, item.index)).join("")
-        : `<div class="empty-state">No completed jobs for today yet.</div>`;
-    }
-
-    renderBoard();
-  </script>
-</body>
-</html>
+# -----------------------------
+# RUN
+# -----------------------------
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run("app:app", host="0.0.0.0", port=int(os.environ.get("PORT", 8000)))
