@@ -12,11 +12,12 @@
   }
 
   function toggleArrivalType() {
-    const type = document.getElementById("arrival_type").value;
-    document.getElementById("exact_time_field").classList.toggle("hidden", type === "window");
-    document.getElementById("window_start_field").classList.toggle("hidden", type !== "window");
-    document.getElementById("window_end_field").classList.toggle("hidden", type !== "window");
-  }
+  const type = document.getElementById("arrival_type").value;
+
+  document.getElementById("exact_time_field").classList.toggle("hidden", type === "window");
+  document.getElementById("window_start_field").classList.toggle("hidden", type !== "window");
+  document.getElementById("window_end_field").classList.toggle("hidden", type !== "window");
+}
 
   function searchTechs() {
     const value = document.getElementById("tech_name").value.toLowerCase().trim();
