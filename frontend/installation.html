@@ -473,7 +473,7 @@
   </div>
 
   <script>
-    const API_URL = "http://127.0.0.1:8000";
+    const API_URL = "http://66.42.117.96:8000";
     let technicians = [];
 
     function goTo(page) {
@@ -708,41 +708,54 @@
     }
 
     async function generateInstallation() {
-      await autoSaveTech();
+      try {
+        await autoSaveTech();
 
-      const arrivalType = document.getElementById("arrival_type").value;
-      const date = document.getElementById("date").value;
-      const time = document.getElementById("time").value;
-      const windowStart = document.getElementById("window_start").value;
-      const windowEnd = document.getElementById("window_end").value;
-      const projectType = document.getElementById("project_type").value;
-      const clickupTaskId = document.getElementById("clickup_task_id").value.trim();
-      const techName = document.getElementById("tech_name").value.trim();
-      const techPhone = document.getElementById("tech_phone").value.trim();
-      const contactName = document.getElementById("contact_name").value.trim();
-      const contactEmail = document.getElementById("contact_email").value.trim();
-      const contactPhone = document.getElementById("contact_phone").value.trim();
-      const client = document.getElementById("client").value.trim();
-      const site = document.getElementById("site").value.trim();
-      const address = document.getElementById("address").value.trim();
-      const proposal = document.getElementById("proposal").value.trim();
+        const arrivalType = document.getElementById("arrival_type").value;
+        const date = document.getElementById("date").value;
+        const time = document.getElementById("time").value.trim();
+        const windowStart = document.getElementById("window_start").value.trim();
+        const windowEnd = document.getElementById("window_end").value.trim();
+        const projectType = document.getElementById("project_type").value;
+        const clickupTaskId = document.getElementById("clickup_task_id").value.trim();
+        const techName = document.getElementById("tech_name").value.trim();
+        const techPhone = document.getElementById("tech_phone").value.trim();
+        const contactName = document.getElementById("contact_name").value.trim();
+        const contactEmail = document.getElementById("contact_email").value.trim();
+        const contactPhone = document.getElementById("contact_phone").value.trim();
+        const client = document.getElementById("client").value.trim();
+        const site = document.getElementById("site").value.trim();
+        const address = document.getElementById("address").value.trim();
+        const proposal = document.getElementById("proposal").value.trim();
 
-      const converted = buildConvertedSchedule({
-        date,
-        arrivalType,
-        time,
-        windowStart,
-        windowEnd,
-        address
-      });
+        if (!date || !techName || !techPhone || !contactName || !client || !site || !address) {
+          alert("Please fill out the required fields before generating.");
+          return;
+        }
 
-      const response = await fetch(`${API_URL}/generate-installation`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+        if (arrivalType === "exact" && !time) {
+          alert("Please enter an exact time.");
+          return;
+        }
+
+        if (arrivalType === "window" && (!windowStart || !windowEnd)) {
+          alert("Please enter both arrival window times.");
+          return;
+        }
+
+        const converted = buildConvertedSchedule({
+          date,
+          arrivalType,
+          time,
+          windowStart,
+          windowEnd,
+          address
+        });
+
+        const generatePayload = {
           arrival_type: arrivalType,
-          date: date,
-          time: time,
+          date,
+          time,
           window_start: windowStart,
           window_end: windowEnd,
           project_type: projectType,
@@ -751,59 +764,87 @@
           contact_name: contactName,
           contact_email: contactEmail,
           contact_phone: contactPhone,
-          client: client,
-          site: site,
-          address: address,
-          proposal: proposal
-        })
-      });
+          client,
+          site,
+          address,
+          proposal
+        };
 
-      const data = await response.json();
+        const response = await fetch(`${API_URL}/generate-installation`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(generatePayload)
+        });
 
-      document.getElementById("subject_output").value = data.subject || "";
-      document.getElementById("body_output").value = data.message || "";
+        const responseText = await response.text();
+        let data = {};
 
-      const eventPayload = {
-        client,
-        site,
-        address,
-        technician: techName,
-        technician_phone: techPhone,
-        contact_name: contactName,
-        contact_email: contactEmail,
-        contact_phone: contactPhone,
-        proposal,
-        task_id: clickupTaskId,
-        template_type: "Installation",
-        project_type: projectType,
-        date: converted.calendarDate,
-        site_date: date,
-        time: converted.localTime || "",
-        window_start: converted.localWindowStart || "",
-        window_end: converted.localWindowEnd || "",
-        displayTime: converted.displayTime,
-        site_display_time: converted.siteDisplayTime,
-        site_timezone: converted.siteTimeZone,
-        site_timezone_label: converted.siteTimeZoneLabel,
-        arrival_type: arrivalType,
-        checked_in: false,
-        checked_out: false,
-        check_in_time: "",
-        check_out_time: ""
-      };
+        try {
+          data = responseText ? JSON.parse(responseText) : {};
+        } catch {
+          throw new Error(`Backend returned invalid JSON: ${responseText}`);
+        }
 
-      const saveResponse = await fetch(`${API_URL}/events`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(eventPayload)
-      });
+        if (!response.ok) {
+          throw new Error(data.detail || data.message || `Generate failed (${response.status})`);
+        }
 
-      if (!saveResponse.ok) {
-        alert("Template generated, but appointment did not save to the shared calendar.");
-        return;
+        document.getElementById("subject_output").value = data.subject || "";
+        document.getElementById("body_output").value = data.message || "";
+
+        const eventPayload = {
+          client,
+          site,
+          address,
+          technician: techName,
+          technician_phone: techPhone,
+          contact_name: contactName,
+          contact_email: contactEmail,
+          contact_phone: contactPhone,
+          proposal,
+          task_id: clickupTaskId,
+          template_type: "Installation",
+          project_type: projectType,
+          date: converted.calendarDate,
+          site_date: date,
+          time: converted.localTime || "",
+          window_start: converted.localWindowStart || "",
+          window_end: converted.localWindowEnd || "",
+          displayTime: converted.displayTime || "",
+          site_display_time: converted.siteDisplayTime || "",
+          site_timezone: converted.siteTimeZone || "",
+          site_timezone_label: converted.siteTimeZoneLabel || "",
+          arrival_type: arrivalType,
+          checked_in: false,
+          checked_out: false,
+          check_in_time: "",
+          check_out_time: ""
+        };
+
+        const saveResponse = await fetch(`${API_URL}/events`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(eventPayload)
+        });
+
+        const saveText = await saveResponse.text();
+        let saveData = {};
+
+        try {
+          saveData = saveText ? JSON.parse(saveText) : {};
+        } catch {
+          throw new Error(`Calendar save returned invalid JSON: ${saveText}`);
+        }
+
+        if (!saveResponse.ok) {
+          throw new Error(saveData.detail || saveData.message || `Calendar save failed (${saveResponse.status})`);
+        }
+
+        alert("Installation template generated and saved to the shared calendar.");
+      } catch (error) {
+        console.error("generateInstallation error:", error);
+        alert(`Installation template failed: ${error.message}`);
       }
-
-      alert("Installation template generated and saved to the shared calendar.");
     }
 
     function copySubject() {
