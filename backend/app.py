@@ -11,14 +11,6 @@ import os
 
 app = FastAPI(title="SVS Dispatch Backend")
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 FRONTEND_DIR = os.path.join(BASE_DIR, "frontend")
 DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "svs_dispatch.db")
@@ -26,6 +18,30 @@ CLICKUP_WEBHOOK_URL = os.environ.get(
     "CLICKUP_WEBHOOK_URL",
     "https://hook.us1.make.com/tzham3njl79ucri6lmsd9imvecnft9xq"
 )
+
+# -----------------------------
+# CORS
+# -----------------------------
+# Important:
+# Do NOT use allow_credentials=True with allow_origins=["*"] for this setup.
+# Your frontend does not need cookies/session auth, so credentials should be False.
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "*",
+        "http://66.42.117.96:8000",
+        "http://66.42.117.96",
+    ],
+    allow_credentials=False,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# -----------------------------
+# STATIC FILES
+# -----------------------------
+if os.path.isdir(FRONTEND_DIR):
+    app.mount("/static", StaticFiles(directory=FRONTEND_DIR), name="static")
 
 
 # -----------------------------
@@ -572,6 +588,11 @@ def delete_event(event_id: int):
 # -----------------------------
 # TEMPLATE GENERATION
 # -----------------------------
+@app.options("/generate-dispatch")
+def options_generate_dispatch():
+    return {"ok": True}
+
+
 @app.post("/generate-dispatch")
 def generate_dispatch(data: GenerateTemplateIn):
     return {
@@ -580,12 +601,22 @@ def generate_dispatch(data: GenerateTemplateIn):
     }
 
 
+@app.options("/generate-service")
+def options_generate_service():
+    return {"ok": True}
+
+
 @app.post("/generate-service")
 def generate_service(data: GenerateTemplateIn):
     return {
         "subject": build_subject(data, "service"),
         "message": build_service_message(data)
     }
+
+
+@app.options("/generate-installation")
+def options_generate_installation():
+    return {"ok": True}
 
 
 @app.post("/generate-installation")
@@ -661,8 +692,21 @@ def send_checkout(payload: CheckoutPayload):
 
 
 # -----------------------------
-# FRONTEND FILES
+# FRONTEND FILES / STATIC ASSETS
 # -----------------------------
+@app.get("/svs-logo.png")
+def serve_logo():
+    return FileResponse(os.path.join(FRONTEND_DIR, "svs-logo.png"))
+
+
+@app.get("/favicon.ico")
+def serve_favicon():
+    favicon_path = os.path.join(FRONTEND_DIR, "favicon.ico")
+    if os.path.exists(favicon_path):
+        return FileResponse(favicon_path)
+    raise HTTPException(status_code=404, detail="favicon.ico not found")
+
+
 @app.get("/index.html")
 def serve_index():
     return FileResponse(os.path.join(FRONTEND_DIR, "index.html"))
