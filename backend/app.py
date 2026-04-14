@@ -14,43 +14,35 @@ app = FastAPI(title="SVS Dispatch Backend")
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 FRONTEND_DIR = os.path.join(BASE_DIR, "frontend")
 DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "svs_dispatch.db")
+
 CLICKUP_WEBHOOK_URL = os.environ.get(
     "CLICKUP_WEBHOOK_URL",
     "https://hook.us1.make.com/tzham3njl79ucri6lmsd9imvecnft9xq"
 )
 
-# -----------------------------
-# CORS
-# -----------------------------
-# Important:
-# Do NOT use allow_credentials=True with allow_origins=["*"] for this setup.
-# Your frontend does not need cookies/session auth, so credentials should be False.
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "*",
-        "http://66.42.117.96:8000",
-        "http://66.42.117.96",
-    ],
+    allow_origins=["*"],
     allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# -----------------------------
-# STATIC FILES
-# -----------------------------
 if os.path.isdir(FRONTEND_DIR):
     app.mount("/static", StaticFiles(directory=FRONTEND_DIR), name="static")
 
 
-# -----------------------------
-# DATABASE
-# -----------------------------
 def get_conn():
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     return conn
+
+
+def ensure_column(cur, table_name: str, column_name: str, column_sql: str):
+    cols = cur.execute(f"PRAGMA table_info({table_name})").fetchall()
+    existing = [c["name"] if isinstance(c, sqlite3.Row) else c[1] for c in cols]
+    if column_name not in existing:
+        cur.execute(f"ALTER TABLE {table_name} ADD COLUMN {column_name} {column_sql}")
 
 
 def init_db():
@@ -97,6 +89,11 @@ def init_db():
         )
     """)
 
+    ensure_column(cur, "events", "ip_camera_clickup_id", "TEXT DEFAULT ''")
+    ensure_column(cur, "events", "access_control_clickup_id", "TEXT DEFAULT ''")
+    ensure_column(cur, "events", "ip_camera_proposal", "TEXT DEFAULT ''")
+    ensure_column(cur, "events", "access_control_proposal", "TEXT DEFAULT ''")
+
     conn.commit()
     conn.close()
 
@@ -104,9 +101,6 @@ def init_db():
 init_db()
 
 
-# -----------------------------
-# MODELS
-# -----------------------------
 class TechnicianIn(BaseModel):
     name: str
     phone: str
@@ -145,6 +139,10 @@ class EventIn(BaseModel):
     checked_out: bool = False
     check_in_time: Optional[str] = ""
     check_out_time: Optional[str] = ""
+    ip_camera_clickup_id: Optional[str] = ""
+    access_control_clickup_id: Optional[str] = ""
+    ip_camera_proposal: Optional[str] = ""
+    access_control_proposal: Optional[str] = ""
 
 
 class EventOut(EventIn):
@@ -167,9 +165,12 @@ class GenerateTemplateIn(BaseModel):
     site: str = ""
     address: str = ""
     proposal: Optional[str] = ""
+    ip_camera_proposal: Optional[str] = ""
+    access_control_proposal: Optional[str] = ""
 
 
 class CheckinPayload(BaseModel):
+    event_id: int
     task_id: str
     client: Optional[str] = ""
     site: Optional[str] = ""
@@ -178,6 +179,7 @@ class CheckinPayload(BaseModel):
 
 
 class CheckoutPayload(BaseModel):
+    event_id: int
     task_id: str
     client: Optional[str] = ""
     site: Optional[str] = ""
@@ -185,17 +187,14 @@ class CheckoutPayload(BaseModel):
     check_out_time: Optional[str] = ""
 
 
-# -----------------------------
-# HELPERS
-# -----------------------------
 def row_to_dict(row):
     return dict(row)
 
 
 def normalize_event_row(row):
     data = dict(row)
-    data["checked_in"] = bool(data["checked_in"])
-    data["checked_out"] = bool(data["checked_out"])
+    data["checked_in"] = bool(data.get("checked_in", 0))
+    data["checked_out"] = bool(data.get("checked_out", 0))
     return data
 
 
@@ -281,6 +280,18 @@ def greeting_for_time(data: GenerateTemplateIn) -> str:
     return "afternoon"
 
 
+def proposal_block(data: GenerateTemplateIn) -> str:
+    pt = (data.project_type or "").strip().lower()
+
+    if pt == "both":
+        return (
+            f"IP Camera Proposal #: {data.ip_camera_proposal}\n"
+            f"Access Control Proposal #: {data.access_control_proposal}"
+        )
+
+    return f"Proposal #: {data.proposal}"
+
+
 def build_subject(data: GenerateTemplateIn, mode: str) -> str:
     return f"{subject_prefix(data.project_type, mode)} for {pretty_date(data.date)} {time_phrase(data)}"
 
@@ -308,7 +319,7 @@ Client: {data.client}
 Site: {data.site}
 Project Address: {data.address}
 
-Proposal #: {data.proposal}
+{proposal_block(data)}
 
 If any of the information above needs correction, please email me as soon as possible.
 
@@ -364,24 +375,18 @@ Client: {data.client}
 Site: {data.site}
 Project Address: {data.address}
 
-Proposal #: {data.proposal}
+{proposal_block(data)}
 
 If any of the information above needs correction, please email me as soon as possible.
 
 Thank you,"""
 
 
-# -----------------------------
-# HEALTH / ROOT
-# -----------------------------
 @app.get("/health")
 def health():
     return {"status": "ok"}
 
 
-# -----------------------------
-# TECHNICIANS
-# -----------------------------
 @app.get("/technicians", response_model=List[TechnicianOut])
 def get_technicians():
     conn = get_conn()
@@ -449,17 +454,15 @@ def delete_technician(tech_id: int):
     cur.execute("DELETE FROM technicians WHERE id = ?", (tech_id,))
     conn.commit()
     conn.close()
-
     return {"status": "deleted"}
 
 
-# -----------------------------
-# EVENTS
-# -----------------------------
 @app.get("/events", response_model=List[EventOut])
 def get_events():
     conn = get_conn()
-    rows = conn.execute("SELECT * FROM events ORDER BY date, COALESCE(time, ''), COALESCE(displayTime, '')").fetchall()
+    rows = conn.execute(
+        "SELECT * FROM events ORDER BY date, COALESCE(time, ''), COALESCE(displayTime, '')"
+    ).fetchall()
     conn.close()
     return [normalize_event_row(r) for r in rows]
 
@@ -476,8 +479,10 @@ def create_event(event: EventIn):
             template_type, project_type, date, site_date, time,
             window_start, window_end, displayTime, site_display_time,
             site_timezone, site_timezone_label, arrival_type,
-            checked_in, checked_out, check_in_time, check_out_time
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            checked_in, checked_out, check_in_time, check_out_time,
+            ip_camera_clickup_id, access_control_clickup_id,
+            ip_camera_proposal, access_control_proposal
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     """, (
         event.client,
         event.site,
@@ -504,7 +509,11 @@ def create_event(event: EventIn):
         int(bool(event.checked_in)),
         int(bool(event.checked_out)),
         event.check_in_time,
-        event.check_out_time
+        event.check_out_time,
+        event.ip_camera_clickup_id or "",
+        event.access_control_clickup_id or "",
+        event.ip_camera_proposal or "",
+        event.access_control_proposal or "",
     ))
 
     conn.commit()
@@ -530,7 +539,9 @@ def update_event(event_id: int, event: EventIn):
             template_type = ?, project_type = ?, date = ?, site_date = ?, time = ?,
             window_start = ?, window_end = ?, displayTime = ?, site_display_time = ?,
             site_timezone = ?, site_timezone_label = ?, arrival_type = ?,
-            checked_in = ?, checked_out = ?, check_in_time = ?, check_out_time = ?
+            checked_in = ?, checked_out = ?, check_in_time = ?, check_out_time = ?,
+            ip_camera_clickup_id = ?, access_control_clickup_id = ?,
+            ip_camera_proposal = ?, access_control_proposal = ?
         WHERE id = ?
     """, (
         event.client,
@@ -559,6 +570,10 @@ def update_event(event_id: int, event: EventIn):
         int(bool(event.checked_out)),
         event.check_in_time,
         event.check_out_time,
+        event.ip_camera_clickup_id or "",
+        event.access_control_clickup_id or "",
+        event.ip_camera_proposal or "",
+        event.access_control_proposal or "",
         event_id
     ))
 
@@ -581,13 +596,9 @@ def delete_event(event_id: int):
     cur.execute("DELETE FROM events WHERE id = ?", (event_id,))
     conn.commit()
     conn.close()
-
     return {"status": "deleted"}
 
 
-# -----------------------------
-# TEMPLATE GENERATION
-# -----------------------------
 @app.options("/generate-dispatch")
 def options_generate_dispatch():
     return {"ok": True}
@@ -627,15 +638,28 @@ def generate_installation(data: GenerateTemplateIn):
     }
 
 
-# -----------------------------
-# CHECK-IN / CHECK-OUT WEBHOOKS
-# -----------------------------
+def send_clickup_comment(task_id: str, body: dict):
+    if not task_id:
+        return None
+    payload = dict(body)
+    payload["task_id"] = task_id
+    return requests.post(CLICKUP_WEBHOOK_URL, json=payload, timeout=20)
+
+
 @app.post("/send-checkin")
 def send_checkin(payload: CheckinPayload):
+    conn = get_conn()
+    cur = conn.cursor()
+
+    event = cur.execute("SELECT * FROM events WHERE id = ?", (payload.event_id,)).fetchone()
+    if not event:
+        conn.close()
+        raise HTTPException(status_code=404, detail="Event not found")
+
+    event_data = dict(event)
     comment = f"Status Update: The technician is on-site and checked in at {payload.check_in_time} (Local Time)."
 
     body = {
-        "task_id": payload.task_id,
         "type": "checkin",
         "comment": comment,
         "client": payload.client,
@@ -645,29 +669,58 @@ def send_checkin(payload: CheckinPayload):
     }
 
     try:
-        r = requests.post(CLICKUP_WEBHOOK_URL, json=body, timeout=20)
-        return {
-            "status": "sent",
-            "status_code": r.status_code,
-            "response_text": r.text[:1000]
-        }
+        sent_to = []
+        project_type = (event_data.get("project_type") or "").lower()
+
+        if project_type == "both":
+            ip_id = event_data.get("ip_camera_clickup_id") or ""
+            ac_id = event_data.get("access_control_clickup_id") or ""
+
+            if ip_id:
+                send_clickup_comment(ip_id, body)
+                sent_to.append(f"IP Camera ({ip_id})")
+            if ac_id:
+                send_clickup_comment(ac_id, body)
+                sent_to.append(f"Access Control ({ac_id})")
+        else:
+            task_id = payload.task_id or event_data.get("task_id") or ""
+            if task_id:
+                send_clickup_comment(task_id, body)
+                sent_to.append(task_id)
+
+        cur.execute("""
+            UPDATE events
+            SET checked_in = 1,
+                checked_out = 0,
+                check_in_time = ?
+            WHERE id = ?
+        """, (payload.check_in_time or "", payload.event_id))
+        conn.commit()
+        conn.close()
+
+        return {"status": "sent", "sent_to": sent_to}
     except Exception as e:
-        return {
-            "status": "error",
-            "status_code": 500,
-            "response_text": str(e)
-        }
+        conn.close()
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.post("/send-checkout")
 def send_checkout(payload: CheckoutPayload):
+    conn = get_conn()
+    cur = conn.cursor()
+
+    event = cur.execute("SELECT * FROM events WHERE id = ?", (payload.event_id,)).fetchone()
+    if not event:
+        conn.close()
+        raise HTTPException(status_code=404, detail="Event not found")
+
+    event_data = dict(event)
     comment = (
         f"Status update: The technician is off-site and checked out at "
         f"{payload.check_out_time} (Local Time). Survey documents will be available once they have been processed."
     )
 
     body = {
-        "task_id": payload.task_id,
         "type": "checkout",
         "comment": comment,
         "client": payload.client,
@@ -677,23 +730,41 @@ def send_checkout(payload: CheckoutPayload):
     }
 
     try:
-        r = requests.post(CLICKUP_WEBHOOK_URL, json=body, timeout=20)
-        return {
-            "status": "sent",
-            "status_code": r.status_code,
-            "response_text": r.text[:1000]
-        }
+        sent_to = []
+        project_type = (event_data.get("project_type") or "").lower()
+
+        if project_type == "both":
+            ip_id = event_data.get("ip_camera_clickup_id") or ""
+            ac_id = event_data.get("access_control_clickup_id") or ""
+
+            if ip_id:
+                send_clickup_comment(ip_id, body)
+                sent_to.append(f"IP Camera ({ip_id})")
+            if ac_id:
+                send_clickup_comment(ac_id, body)
+                sent_to.append(f"Access Control ({ac_id})")
+        else:
+            task_id = payload.task_id or event_data.get("task_id") or ""
+            if task_id:
+                send_clickup_comment(task_id, body)
+                sent_to.append(task_id)
+
+        cur.execute("""
+            UPDATE events
+            SET checked_in = 1,
+                checked_out = 1,
+                check_out_time = ?
+            WHERE id = ?
+        """, (payload.check_out_time or "", payload.event_id))
+        conn.commit()
+        conn.close()
+
+        return {"status": "sent", "sent_to": sent_to}
     except Exception as e:
-        return {
-            "status": "error",
-            "status_code": 500,
-            "response_text": str(e)
-        }
+        conn.close()
+        raise HTTPException(status_code=500, detail=str(e))
 
 
-# -----------------------------
-# FRONTEND FILES / STATIC ASSETS
-# -----------------------------
 @app.get("/svs-logo.png")
 def serve_logo():
     return FileResponse(os.path.join(FRONTEND_DIR, "svs-logo.png"))
@@ -747,9 +818,6 @@ def serve_home():
     return FileResponse(os.path.join(FRONTEND_DIR, "index.html"))
 
 
-# -----------------------------
-# RUN
-# -----------------------------
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("app:app", host="0.0.0.0", port=int(os.environ.get("PORT", 8000)))

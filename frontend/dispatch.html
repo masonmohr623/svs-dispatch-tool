@@ -335,7 +335,7 @@
 
           <div class="field">
             <label for="project_type">Project Type</label>
-            <select id="project_type">
+            <select id="project_type" onchange="toggleProjectTypeFields()">
               <option value="ip_camera">IP Camera</option>
               <option value="access_control">Access Control</option>
               <option value="both">IP Camera + Access Control</option>
@@ -357,9 +357,19 @@
             <input list="time-options" id="window_end" placeholder="Example: 12:00 PM">
           </div>
 
-          <div class="field full">
-            <label for="clickup_task_id">ClickUp Task ID</label>
+          <div class="field full" id="single_clickup_field">
+            <label for="clickup_task_id">ClickUp ID</label>
             <input id="clickup_task_id" placeholder="Example: 86b92e4q4">
+          </div>
+
+          <div class="field full hidden" id="ip_clickup_field">
+            <label for="ip_camera_clickup_id">IP Camera ClickUp ID</label>
+            <input id="ip_camera_clickup_id" placeholder="Example: 86b92e4q4">
+          </div>
+
+          <div class="field full hidden" id="ac_clickup_field">
+            <label for="access_control_clickup_id">Access Control ClickUp ID</label>
+            <input id="access_control_clickup_id" placeholder="Example: 86b92e4q4">
           </div>
 
           <datalist id="time-options">
@@ -439,14 +449,24 @@
             <input id="address" placeholder="123 Main St Los Angeles, CA 90001">
           </div>
 
-          <div class="field full">
+          <div class="field full" id="single_proposal_field">
             <label for="proposal">Proposal #</label>
             <input id="proposal">
+          </div>
+
+          <div class="field full hidden" id="ip_proposal_field">
+            <label for="ip_camera_proposal">IP Camera Proposal #</label>
+            <input id="ip_camera_proposal">
+          </div>
+
+          <div class="field full hidden" id="ac_proposal_field">
+            <label for="access_control_proposal">Access Control Proposal #</label>
+            <input id="access_control_proposal">
           </div>
         </div>
 
         <div class="help-box">
-          This page now saves appointments to the shared backend database. Everyone using the company site will see the same saved survey appointments.
+          If the project type is IP Camera + Access Control, use the split ClickUp IDs and split proposal numbers. Those IDs will also be used later for check-in and check-out notifications to both cards.
         </div>
 
         <div class="actions">
@@ -460,7 +480,7 @@
       <div class="panel">
         <h2>Generated Output</h2>
         <div class="output-note">
-          The email uses the site’s local time. The shared calendar saves the converted local time for your team.
+          For combined IP Camera + Access Control surveys, the email will show both proposal numbers.
         </div>
 
         <label for="subject_output">Subject</label>
@@ -480,16 +500,29 @@
       window.location.href = page;
     }
 
-    async function fetchTechnicians() {
-      const response = await fetch(`${API_URL}/technicians`);
-      technicians = await response.json();
-    }
-
     function toggleArrivalType() {
       const type = document.getElementById("arrival_type").value;
       document.getElementById("exact_time_field").classList.toggle("hidden", type === "window");
       document.getElementById("window_start_field").classList.toggle("hidden", type !== "window");
       document.getElementById("window_end_field").classList.toggle("hidden", type !== "window");
+    }
+
+    function toggleProjectTypeFields() {
+      const projectType = document.getElementById("project_type").value;
+      const both = projectType === "both";
+
+      document.getElementById("single_clickup_field").classList.toggle("hidden", both);
+      document.getElementById("single_proposal_field").classList.toggle("hidden", both);
+
+      document.getElementById("ip_clickup_field").classList.toggle("hidden", !both);
+      document.getElementById("ac_clickup_field").classList.toggle("hidden", !both);
+      document.getElementById("ip_proposal_field").classList.toggle("hidden", !both);
+      document.getElementById("ac_proposal_field").classList.toggle("hidden", !both);
+    }
+
+    async function fetchTechnicians() {
+      const response = await fetch(`${API_URL}/technicians`);
+      technicians = await response.json();
     }
 
     function searchTechs() {
@@ -529,220 +562,75 @@
       }
     }
 
-    function parseTime12(timeString) {
-      const match = String(timeString || "").trim().match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
-      if (!match) return null;
+    async function generateDispatch() {
+      try {
+        await autoSaveTech();
 
-      let hours = parseInt(match[1], 10);
-      const minutes = parseInt(match[2], 10);
-      const meridiem = match[3].toUpperCase();
+        const projectType = document.getElementById("project_type").value;
+        const isBoth = projectType === "both";
 
-      if (meridiem === "AM" && hours === 12) hours = 0;
-      if (meridiem === "PM" && hours !== 12) hours += 12;
+        const arrivalType = document.getElementById("arrival_type").value;
+        const date = document.getElementById("date").value;
+        const time = document.getElementById("time").value.trim();
+        const windowStart = document.getElementById("window_start").value.trim();
+        const windowEnd = document.getElementById("window_end").value.trim();
 
-      return { hours, minutes };
-    }
+        const techName = document.getElementById("tech_name").value.trim();
+        const techPhone = document.getElementById("tech_phone").value.trim();
+        const contactName = document.getElementById("contact_name").value.trim();
+        const contactEmail = document.getElementById("contact_email").value.trim();
+        const contactPhone = document.getElementById("contact_phone").value.trim();
+        const client = document.getElementById("client").value.trim();
+        const site = document.getElementById("site").value.trim();
+        const address = document.getElementById("address").value.trim();
 
-    function getAddressState(address) {
-      const upper = String(address || "").toUpperCase().trim();
-      const abbrevMatch = upper.match(/\b(AL|AK|AZ|AR|CA|CO|CT|DE|FL|GA|HI|ID|IL|IN|IA|KS|KY|LA|ME|MD|MA|MI|MN|MS|MO|MT|NE|NV|NH|NJ|NM|NY|NC|ND|OH|OK|OR|PA|RI|SC|SD|TN|TX|UT|VT|VA|WA|WV|WI|WY)\b(?:\s+\d{5}(?:-\d{4})?)?$/);
-      if (abbrevMatch) return abbrevMatch[1];
+        const clickupTaskId = document.getElementById("clickup_task_id").value.trim();
+        const proposal = document.getElementById("proposal").value.trim();
 
-      const stateNames = {
-        ALABAMA: "AL", ALASKA: "AK", ARIZONA: "AZ", ARKANSAS: "AR", CALIFORNIA: "CA",
-        COLORADO: "CO", CONNECTICUT: "CT", DELAWARE: "DE", FLORIDA: "FL", GEORGIA: "GA",
-        HAWAII: "HI", IDAHO: "ID", ILLINOIS: "IL", INDIANA: "IN", IOWA: "IA",
-        KANSAS: "KS", KENTUCKY: "KY", LOUISIANA: "LA", MAINE: "ME", MARYLAND: "MD",
-        MASSACHUSETTS: "MA", MICHIGAN: "MI", MINNESOTA: "MN", MISSISSIPPI: "MS",
-        MISSOURI: "MO", MONTANA: "MT", NEBRASKA: "NE", NEVADA: "NV", "NEW HAMPSHIRE": "NH",
-        "NEW JERSEY": "NJ", "NEW MEXICO": "NM", "NEW YORK": "NY", "NORTH CAROLINA": "NC",
-        "NORTH DAKOTA": "ND", OHIO: "OH", OKLAHOMA: "OK", OREGON: "OR", PENNSYLVANIA: "PA",
-        "RHODE ISLAND": "RI", "SOUTH CAROLINA": "SC", "SOUTH DAKOTA": "SD", TENNESSEE: "TN",
-        TEXAS: "TX", UTAH: "UT", VERMONT: "VT", VIRGINIA: "VA", WASHINGTON: "WA",
-        "WEST VIRGINIA": "WV", WISCONSIN: "WI", WYOMING: "WY"
-      };
+        const ipCameraClickupId = document.getElementById("ip_camera_clickup_id").value.trim();
+        const accessControlClickupId = document.getElementById("access_control_clickup_id").value.trim();
+        const ipCameraProposal = document.getElementById("ip_camera_proposal").value.trim();
+        const accessControlProposal = document.getElementById("access_control_proposal").value.trim();
 
-      for (const [name, abbr] of Object.entries(stateNames)) {
-        if (upper.includes(name)) return abbr;
-      }
-      return null;
-    }
-
-    function inferTimeZoneFromAddress(address) {
-      const state = getAddressState(address);
-      const map = {
-        AL: "America/Chicago", AK: "America/Anchorage", AZ: "America/Phoenix", AR: "America/Chicago",
-        CA: "America/Los_Angeles", CO: "America/Denver", CT: "America/New_York", DE: "America/New_York",
-        FL: "America/New_York", GA: "America/New_York", HI: "Pacific/Honolulu", ID: "America/Denver",
-        IL: "America/Chicago", IN: "America/New_York", IA: "America/Chicago", KS: "America/Chicago",
-        KY: "America/New_York", LA: "America/Chicago", ME: "America/New_York", MD: "America/New_York",
-        MA: "America/New_York", MI: "America/New_York", MN: "America/Chicago", MS: "America/Chicago",
-        MO: "America/Chicago", MT: "America/Denver", NE: "America/Chicago", NV: "America/Los_Angeles",
-        NH: "America/New_York", NJ: "America/New_York", NM: "America/Denver", NY: "America/New_York",
-        NC: "America/New_York", ND: "America/Chicago", OH: "America/New_York", OK: "America/Chicago",
-        OR: "America/Los_Angeles", PA: "America/New_York", RI: "America/New_York", SC: "America/New_York",
-        SD: "America/Chicago", TN: "America/Chicago", TX: "America/Chicago", UT: "America/Denver",
-        VT: "America/New_York", VA: "America/New_York", WA: "America/Los_Angeles", WV: "America/New_York",
-        WI: "America/Chicago", WY: "America/Denver"
-      };
-      return map[state] || Intl.DateTimeFormat().resolvedOptions().timeZone;
-    }
-
-    function getTimeZoneLabel(timeZone) {
-      const labels = {
-        "America/New_York": "ET",
-        "America/Chicago": "CT",
-        "America/Denver": "MT",
-        "America/Los_Angeles": "PT",
-        "America/Phoenix": "MT",
-        "America/Anchorage": "AKT",
-        "Pacific/Honolulu": "HT"
-      };
-      return labels[timeZone] || timeZone;
-    }
-
-    function getZonedParts(date, timeZone) {
-      const parts = new Intl.DateTimeFormat("en-US", {
-        timeZone,
-        year: "numeric",
-        month: "2-digit",
-        day: "2-digit",
-        hour: "2-digit",
-        minute: "2-digit",
-        hour12: false
-      }).formatToParts(date);
-
-      const obj = {};
-      for (const part of parts) {
-        if (part.type !== "literal") obj[part.type] = part.value;
-      }
-
-      return {
-        year: parseInt(obj.year, 10),
-        month: parseInt(obj.month, 10),
-        day: parseInt(obj.day, 10),
-        hour: parseInt(obj.hour, 10),
-        minute: parseInt(obj.minute, 10)
-      };
-    }
-
-    function zonedDateTimeToDate(dateStr, timeStr, timeZone) {
-      const [year, month, day] = dateStr.split("-").map(Number);
-      const parsedTime = parseTime12(timeStr);
-      if (!year || !month || !day || !parsedTime) return null;
-
-      let utcGuess = Date.UTC(year, month - 1, day, parsedTime.hours, parsedTime.minutes);
-
-      for (let i = 0; i < 3; i++) {
-        const zoned = getZonedParts(new Date(utcGuess), timeZone);
-        const desiredUtc = Date.UTC(year, month - 1, day, parsedTime.hours, parsedTime.minutes);
-        const zonedUtc = Date.UTC(zoned.year, zoned.month - 1, zoned.day, zoned.hour, zoned.minute);
-        utcGuess += desiredUtc - zonedUtc;
-      }
-
-      return new Date(utcGuess);
-    }
-
-    function formatLocalTime(dateObj) {
-      return dateObj.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
-    }
-
-    function formatLocalDateInput(dateObj) {
-      const y = dateObj.getFullYear();
-      const m = String(dateObj.getMonth() + 1).padStart(2, "0");
-      const d = String(dateObj.getDate()).padStart(2, "0");
-      return `${y}-${m}-${d}`;
-    }
-
-    function buildConvertedSchedule({ date, arrivalType, time, windowStart, windowEnd, address }) {
-      const siteTimeZone = inferTimeZoneFromAddress(address);
-      const siteTimeZoneLabel = getTimeZoneLabel(siteTimeZone);
-
-      if (arrivalType === "window") {
-        const startDate = zonedDateTimeToDate(date, windowStart, siteTimeZone);
-        const endDate = zonedDateTimeToDate(date, windowEnd, siteTimeZone);
-
-        if (!startDate || !endDate) {
-          return {
-            siteTimeZone,
-            siteTimeZoneLabel,
-            calendarDate: date,
-            displayTime: `${windowStart} - ${windowEnd}`,
-            siteDisplayTime: `${windowStart} - ${windowEnd} (${siteTimeZoneLabel})`
-          };
+        if (!date || !techName || !techPhone || !contactName || !client || !site || !address) {
+          alert("Please fill out the required fields before generating.");
+          return;
         }
 
-        return {
-          siteTimeZone,
-          siteTimeZoneLabel,
-          calendarDate: formatLocalDateInput(startDate),
-          localTime: "",
-          localWindowStart: formatLocalTime(startDate),
-          localWindowEnd: formatLocalTime(endDate),
-          displayTime: `${formatLocalTime(startDate)} - ${formatLocalTime(endDate)}`,
-          siteDisplayTime: `${windowStart} - ${windowEnd} (${siteTimeZoneLabel})`
-        };
-      }
+        if (arrivalType === "exact" && !time) {
+          alert("Please enter an exact time.");
+          return;
+        }
 
-      const converted = zonedDateTimeToDate(date, time, siteTimeZone);
+        if (arrivalType === "window" && (!windowStart || !windowEnd)) {
+          alert("Please enter both the arrival window start and end.");
+          return;
+        }
 
-      if (!converted) {
-        return {
-          siteTimeZone,
-          siteTimeZoneLabel,
-          calendarDate: date,
-          localTime: time,
-          displayTime: time,
-          siteDisplayTime: `${time} (${siteTimeZoneLabel})`
-        };
-      }
+        if (isBoth) {
+          if (!ipCameraClickupId || !accessControlClickupId) {
+            alert("Please enter both ClickUp IDs.");
+            return;
+          }
+          if (!ipCameraProposal || !accessControlProposal) {
+            alert("Please enter both proposal numbers.");
+            return;
+          }
+        } else {
+          if (!clickupTaskId) {
+            alert("Please enter the ClickUp ID.");
+            return;
+          }
+          if (!proposal) {
+            alert("Please enter the proposal number.");
+            return;
+          }
+        }
 
-      return {
-        siteTimeZone,
-        siteTimeZoneLabel,
-        calendarDate: formatLocalDateInput(converted),
-        localTime: formatLocalTime(converted),
-        displayTime: formatLocalTime(converted),
-        siteDisplayTime: `${time} (${siteTimeZoneLabel})`
-      };
-    }
-
-    async function generateDispatch() {
-      await autoSaveTech();
-
-      const arrivalType = document.getElementById("arrival_type").value;
-      const date = document.getElementById("date").value;
-      const time = document.getElementById("time").value;
-      const windowStart = document.getElementById("window_start").value;
-      const windowEnd = document.getElementById("window_end").value;
-      const projectType = document.getElementById("project_type").value;
-      const clickupTaskId = document.getElementById("clickup_task_id").value.trim();
-      const techName = document.getElementById("tech_name").value.trim();
-      const techPhone = document.getElementById("tech_phone").value.trim();
-      const contactName = document.getElementById("contact_name").value.trim();
-      const contactEmail = document.getElementById("contact_email").value.trim();
-      const contactPhone = document.getElementById("contact_phone").value.trim();
-      const client = document.getElementById("client").value.trim();
-      const site = document.getElementById("site").value.trim();
-      const address = document.getElementById("address").value.trim();
-      const proposal = document.getElementById("proposal").value.trim();
-
-      const converted = buildConvertedSchedule({
-        date,
-        arrivalType,
-        time,
-        windowStart,
-        windowEnd,
-        address
-      });
-
-      const response = await fetch(`${API_URL}/generate-dispatch`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+        const generatePayload = {
           arrival_type: arrivalType,
-          date: date,
-          time: time,
+          date,
+          time,
           window_start: windowStart,
           window_end: windowEnd,
           project_type: projectType,
@@ -751,59 +639,97 @@
           contact_name: contactName,
           contact_email: contactEmail,
           contact_phone: contactPhone,
-          client: client,
-          site: site,
-          address: address,
-          proposal: proposal
-        })
-      });
+          client,
+          site,
+          address,
+          proposal: isBoth ? "" : proposal,
+          ip_camera_proposal: isBoth ? ipCameraProposal : "",
+          access_control_proposal: isBoth ? accessControlProposal : ""
+        };
 
-      const data = await response.json();
+        const response = await fetch(`${API_URL}/generate-dispatch`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(generatePayload)
+        });
 
-      document.getElementById("subject_output").value = data.subject || "";
-      document.getElementById("body_output").value = data.message || "";
+        const responseText = await response.text();
+        let data = {};
 
-      const eventPayload = {
-        client,
-        site,
-        address,
-        technician: techName,
-        technician_phone: techPhone,
-        contact_name: contactName,
-        contact_email: contactEmail,
-        contact_phone: contactPhone,
-        proposal,
-        task_id: clickupTaskId,
-        template_type: "Survey",
-        project_type: projectType,
-        date: converted.calendarDate,
-        site_date: date,
-        time: converted.localTime || "",
-        window_start: converted.localWindowStart || "",
-        window_end: converted.localWindowEnd || "",
-        displayTime: converted.displayTime,
-        site_display_time: converted.siteDisplayTime,
-        site_timezone: converted.siteTimeZone,
-        site_timezone_label: converted.siteTimeZoneLabel,
-        arrival_type: arrivalType,
-        checked_in: false,
-        checked_out: false,
-        check_in_time: "",
-        check_out_time: ""
-      };
+        try {
+          data = responseText ? JSON.parse(responseText) : {};
+        } catch {
+          throw new Error(`Backend returned invalid JSON: ${responseText}`);
+        }
 
-      const saveResponse = await fetch(`${API_URL}/events`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(eventPayload)
-      });
+        if (!response.ok) {
+          throw new Error(data.detail || data.message || `Generate failed (${response.status})`);
+        }
 
-      if (!saveResponse.ok) {
-        alert("Template generated, but appointment did not save to the shared calendar.");
-        return;
+        document.getElementById("subject_output").value = data.subject || "";
+        document.getElementById("body_output").value = data.message || "";
+
+        const displayTime = arrivalType === "window"
+          ? `${windowStart} - ${windowEnd}`
+          : time;
+
+        const eventPayload = {
+          client,
+          site,
+          address,
+          technician: techName,
+          technician_phone: techPhone,
+          contact_name: contactName,
+          contact_email: contactEmail,
+          contact_phone: contactPhone,
+          proposal: isBoth ? "" : proposal,
+          task_id: isBoth ? "" : clickupTaskId,
+          template_type: "Survey",
+          project_type: projectType,
+          date,
+          site_date: date,
+          time: arrivalType === "exact" ? time : "",
+          window_start: arrivalType === "window" ? windowStart : "",
+          window_end: arrivalType === "window" ? windowEnd : "",
+          displayTime,
+          site_display_time: displayTime,
+          site_timezone: "",
+          site_timezone_label: "",
+          arrival_type: arrivalType,
+          checked_in: false,
+          checked_out: false,
+          check_in_time: "",
+          check_out_time: "",
+          ip_camera_clickup_id: isBoth ? ipCameraClickupId : "",
+          access_control_clickup_id: isBoth ? accessControlClickupId : "",
+          ip_camera_proposal: isBoth ? ipCameraProposal : "",
+          access_control_proposal: isBoth ? accessControlProposal : ""
+        };
+
+        const saveResponse = await fetch(`${API_URL}/events`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(eventPayload)
+        });
+
+        const saveText = await saveResponse.text();
+        let saveData = {};
+
+        try {
+          saveData = saveText ? JSON.parse(saveText) : {};
+        } catch {
+          throw new Error(`Calendar save returned invalid JSON: ${saveText}`);
+        }
+
+        if (!saveResponse.ok) {
+          throw new Error(saveData.detail || saveData.message || `Calendar save failed (${saveResponse.status})`);
+        }
+
+        alert("Survey template generated and saved to the shared calendar.");
+      } catch (error) {
+        console.error("generateDispatch error:", error);
+        alert(`Survey template failed: ${error.message}`);
       }
-
-      alert("Survey template generated and saved to the shared calendar.");
     }
 
     function copySubject() {
@@ -829,6 +755,7 @@
     async function initPage() {
       await fetchTechnicians();
       toggleArrivalType();
+      toggleProjectTypeFields();
     }
 
     initPage();

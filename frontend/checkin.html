@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Check-In Dashboard</title>
+  <title>Check-In Board</title>
   <style>
     :root {
       --svs-dark: #243746;
@@ -14,12 +14,11 @@
       --text: #1f2a33;
       --muted: #647784;
       --white: #ffffff;
-      --upcoming: #8a8f96;
-      --active: #2f7d4a;
-      --complete: #3f6f92;
-      --danger: #b64c4c;
       --shadow: 0 14px 34px rgba(36, 55, 70, 0.12);
       --shadow-hover: 0 18px 40px rgba(36, 55, 70, 0.18);
+      --success: #2f7a4f;
+      --warning: #b8871a;
+      --danger: #b44545;
     }
 
     * {
@@ -38,7 +37,7 @@
     }
 
     .page {
-      max-width: 1420px;
+      max-width: 1500px;
       margin: 0 auto;
       padding: 26px 20px 44px;
     }
@@ -117,106 +116,49 @@
       transform: translateY(-1px);
     }
 
-    .hero {
-      position: relative;
-      overflow: hidden;
-      border-radius: 30px;
-      background: linear-gradient(135deg, var(--svs-dark) 0%, var(--svs-blue) 58%, var(--svs-accent) 100%);
-      color: white;
-      padding: 34px 32px;
-      box-shadow: var(--shadow);
-      margin-bottom: 24px;
+    .toolbar {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      flex-wrap: wrap;
+      margin-bottom: 18px;
     }
 
-    .hero::before,
-    .hero::after {
-      content: "";
-      position: absolute;
-      border-radius: 50%;
-      background: rgba(255,255,255,0.08);
-      pointer-events: none;
-    }
-
-    .hero::before {
-      width: 240px;
-      height: 240px;
-      top: -70px;
-      right: -40px;
-    }
-
-    .hero::after {
-      width: 150px;
-      height: 150px;
-      bottom: -45px;
-      right: 110px;
-    }
-
-    .hero-content {
-      position: relative;
-      z-index: 1;
-      max-width: 900px;
-    }
-
-    .hero h2 {
-      margin: 0 0 10px;
-      font-size: 34px;
-      line-height: 1.1;
-    }
-
-    .hero p {
-      margin: 0;
-      color: #e5edf2;
-      line-height: 1.7;
-      font-size: 15px;
-    }
-
-    .stats-grid {
-      display: grid;
-      grid-template-columns: repeat(4, minmax(0, 1fr));
-      gap: 18px;
-      margin-bottom: 24px;
-    }
-
-    .stat-card {
-      background: rgba(255,255,255,0.96);
+    .toolbar input,
+    .toolbar select {
       border: 1px solid var(--svs-border);
-      border-radius: 22px;
-      padding: 22px;
-      box-shadow: var(--shadow);
-      transition: 0.18s ease;
+      border-radius: 14px;
+      padding: 12px 14px;
+      background: #fff;
+      font-size: 14px;
     }
 
-    .stat-card:hover {
-      transform: translateY(-3px);
-      box-shadow: var(--shadow-hover);
-    }
-
-    .stat-label {
-      font-size: 12px;
+    .toolbar button {
+      border: none;
+      border-radius: 14px;
+      padding: 12px 16px;
+      font-size: 14px;
       font-weight: 700;
-      color: var(--svs-blue);
-      text-transform: uppercase;
-      letter-spacing: 0.7px;
-      margin-bottom: 10px;
+      cursor: pointer;
+      background: linear-gradient(135deg, var(--svs-dark), var(--svs-blue));
+      color: white;
     }
 
-    .stat-value {
-      font-size: 34px;
-      font-weight: 700;
-      color: var(--svs-dark);
-      margin-bottom: 8px;
-    }
-
-    .stat-note {
+    .help-box {
+      margin-bottom: 20px;
+      padding: 14px 16px;
+      border-radius: 16px;
+      background: linear-gradient(180deg, #f4f8fa 0%, #edf3f6 100%);
+      border: 1px solid var(--svs-border);
       color: var(--muted);
       font-size: 14px;
-      line-height: 1.55;
+      line-height: 1.6;
     }
 
     .board {
       display: grid;
       grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 22px;
+      gap: 18px;
       align-items: start;
     }
 
@@ -224,237 +166,140 @@
       background: rgba(255,255,255,0.96);
       border: 1px solid var(--svs-border);
       border-radius: 24px;
-      padding: 22px;
       box-shadow: var(--shadow);
-      min-height: 520px;
+      overflow: hidden;
+      min-height: 560px;
     }
 
-    .column-head {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 12px;
-      padding-bottom: 14px;
-      margin-bottom: 16px;
+    .column-header {
+      padding: 18px 18px 14px;
       border-bottom: 1px solid var(--svs-border);
-      flex-wrap: wrap;
+      background: linear-gradient(180deg, #f7fbfd 0%, #eef4f7 100%);
     }
 
-    .column-head h3 {
+    .column-header h2 {
       margin: 0;
-      font-size: 24px;
+      font-size: 22px;
       color: var(--svs-dark);
     }
 
-    .column-head p {
+    .column-header p {
       margin: 6px 0 0;
       color: var(--muted);
-      font-size: 14px;
+      font-size: 13px;
     }
 
-    .count-chip {
-      min-width: 38px;
-      height: 38px;
-      padding: 0 12px;
-      border-radius: 999px;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 14px;
-      font-weight: 700;
-      color: white;
-    }
-
-    .count-chip.upcoming {
-      background: var(--upcoming);
-    }
-
-    .count-chip.active {
-      background: var(--active);
-    }
-
-    .count-chip.complete {
-      background: var(--complete);
-    }
-
-    .job-list {
+    .column-body {
+      padding: 16px;
+      max-height: 72vh;
+      overflow-y: auto;
       display: grid;
       gap: 14px;
     }
 
-    .job-card {
+    .card {
+      background: #fbfdfe;
       border: 1px solid var(--svs-border);
       border-radius: 18px;
-      overflow: hidden;
-      background: #fbfdfe;
-      transition: 0.18s ease;
+      padding: 16px;
+      box-shadow: 0 6px 16px rgba(36, 55, 70, 0.08);
     }
 
-    .job-card:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 10px 24px rgba(36,55,70,0.12);
-    }
-
-    .job-strip {
-      height: 6px;
-      width: 100%;
-    }
-
-    .job-strip.upcoming {
-      background: var(--upcoming);
-    }
-
-    .job-strip.active {
-      background: var(--active);
-    }
-
-    .job-strip.complete {
-      background: var(--complete);
-    }
-
-    .job-body {
-      padding: 18px;
-    }
-
-    .job-top {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      gap: 12px;
-      flex-wrap: wrap;
-      margin-bottom: 10px;
-    }
-
-    .job-title {
-      margin: 0;
+    .card h3 {
+      margin: 0 0 8px;
       font-size: 18px;
-      font-weight: 700;
       color: var(--svs-dark);
-      line-height: 1.35;
     }
 
-    .job-status {
-      border-radius: 999px;
-      padding: 8px 10px;
-      font-size: 12px;
-      font-weight: 700;
-      white-space: nowrap;
-    }
-
-    .job-status.upcoming {
-      background: #eff1f3;
-      color: #5a6168;
-      border: 1px solid #d8dde1;
-    }
-
-    .job-status.active {
-      background: #e6f5ec;
-      color: #25633a;
-      border: 1px solid #bee0ca;
-    }
-
-    .job-status.complete {
-      background: #e8f1f8;
-      color: #315b7a;
-      border: 1px solid #c7d9e8;
-    }
-
-    .job-site {
-      margin: 0 0 14px;
+    .line {
+      font-size: 14px;
       color: var(--muted);
-      font-size: 14px;
-      line-height: 1.55;
-    }
-
-    .job-details {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 10px;
-      margin-bottom: 14px;
-    }
-
-    .job-detail {
-      background: var(--svs-soft);
-      border: 1px solid #dbe5ea;
-      border-radius: 14px;
-      padding: 10px 12px;
-    }
-
-    .job-detail-label {
-      font-size: 11px;
-      font-weight: 700;
-      color: var(--svs-accent);
-      text-transform: uppercase;
-      letter-spacing: 0.45px;
-      margin-bottom: 6px;
-    }
-
-    .job-detail-value {
-      font-size: 14px;
-      color: var(--text);
-      line-height: 1.45;
+      line-height: 1.5;
+      margin: 4px 0;
       word-break: break-word;
     }
 
-    .task-row {
-      margin-bottom: 14px;
-      font-size: 12px;
-      color: #6a7a84;
-      background: #f3f6f8;
-      border: 1px dashed #c8d4dc;
-      border-radius: 12px;
-      padding: 8px 10px;
-      word-break: break-all;
-    }
-
-    .button-row {
+    .pill-row {
       display: flex;
       gap: 8px;
       flex-wrap: wrap;
+      margin-top: 12px;
+      margin-bottom: 14px;
     }
 
-    .mini-btn {
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      border-radius: 999px;
+      padding: 7px 10px;
+      font-size: 12px;
+      font-weight: 700;
+      border: 1px solid var(--svs-border);
+      background: #f5f9fb;
+      color: var(--svs-dark);
+    }
+
+    .pill.success {
+      background: #eef9f2;
+      color: var(--success);
+      border-color: #cfe8d7;
+    }
+
+    .pill.warning {
+      background: #fff7e9;
+      color: var(--warning);
+      border-color: #f0ddae;
+    }
+
+    .pill.danger {
+      background: #fff1f1;
+      color: var(--danger);
+      border-color: #efcaca;
+    }
+
+    .actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 12px;
+    }
+
+    .btn {
       border: none;
       border-radius: 12px;
-      padding: 11px 13px;
-      font-size: 13px;
+      padding: 10px 12px;
+      font-size: 12px;
       font-weight: 700;
       cursor: pointer;
       transition: 0.18s ease;
     }
 
-    .mini-btn.checkin {
-      background: #e6f5ec;
-      color: #25633a;
-      border: 1px solid #bee0ca;
+    .btn.primary {
+      background: linear-gradient(135deg, var(--svs-dark), var(--svs-blue));
+      color: white;
     }
 
-    .mini-btn.checkout {
-      background: #e8f1f8;
-      color: #315b7a;
-      border: 1px solid #c7d9e8;
+    .btn.success {
+      background: linear-gradient(135deg, #2f7a4f, #3d9160);
+      color: white;
     }
 
-    .mini-btn.reset {
-      background: #f8e7e7;
-      color: var(--danger);
-      border: 1px solid #efc7c7;
+    .btn.warning {
+      background: linear-gradient(135deg, #aa7715, #c68d22);
+      color: white;
     }
 
-    .mini-btn:disabled {
-      opacity: 0.45;
-      cursor: not-allowed;
-    }
-
-    .mini-btn:hover:not(:disabled) {
-      transform: translateY(-1px);
+    .btn.secondary {
+      background: var(--svs-soft);
+      color: var(--svs-dark);
+      border: 1px solid var(--svs-border);
     }
 
     .empty-state {
       color: var(--muted);
       font-size: 14px;
       line-height: 1.6;
-      padding: 8px 0;
+      padding: 8px 2px;
     }
 
     @media (max-width: 1180px) {
@@ -462,49 +307,8 @@
         grid-template-columns: 1fr;
       }
 
-      .column {
-        min-height: auto;
-      }
-    }
-
-    @media (max-width: 980px) {
-      .stats-grid {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-      }
-    }
-
-    @media (max-width: 760px) {
-      .page {
-        padding: 18px 14px 34px;
-      }
-
-      .topbar {
-        padding: 18px;
-      }
-
-      .brand img {
-        width: 72px;
-        height: 72px;
-      }
-
-      .brand-text h1 {
-        font-size: 24px;
-      }
-
-      .hero {
-        padding: 28px 22px;
-      }
-
-      .hero h2 {
-        font-size: 28px;
-      }
-
-      .stats-grid {
-        grid-template-columns: 1fr;
-      }
-
-      .job-details {
-        grid-template-columns: 1fr;
+      .column-body {
+        max-height: none;
       }
     }
   </style>
@@ -516,7 +320,7 @@
       <div class="brand">
         <img src="./svs-logo.png" alt="SVS Logo">
         <div class="brand-text">
-          <h1>Check-In Dashboard</h1>
+          <h1>Check-In Board</h1>
           <p>Secure Vision Solutions</p>
         </div>
       </div>
@@ -531,77 +335,46 @@
       </div>
     </div>
 
-    <div class="hero">
-      <div class="hero-content">
-        <h2>Track technician arrivals and departures with shared live timestamps.</h2>
-        <p>
-          This board now reads from the shared backend database, so everyone sees the same upcoming,
-          active, and completed jobs. Check-ins and check-outs save to the shared calendar and send
-          the matching ClickUp webhook comments with <strong>(Local Time)</strong>.
-        </p>
-      </div>
+    <div class="toolbar">
+      <input type="date" id="filter_date">
+      <select id="template_filter">
+        <option value="all">All Types</option>
+        <option value="Survey">Survey</option>
+        <option value="Installation">Installation</option>
+        <option value="Service">Service</option>
+      </select>
+      <button onclick="loadBoard()">Reload Board</button>
     </div>
 
-    <section class="stats-grid">
-      <div class="stat-card">
-        <div class="stat-label">Jobs Today</div>
-        <div class="stat-value" id="statTotal">0</div>
-        <div class="stat-note">All appointments on today’s shared schedule.</div>
-      </div>
+    <div class="help-box">
+      For jobs marked as IP Camera + Access Control, the Check-In and Check-Out buttons send the notification to both ClickUp cards automatically.
+    </div>
 
-      <div class="stat-card">
-        <div class="stat-label">Not Checked In</div>
-        <div class="stat-value" id="statUpcoming">0</div>
-        <div class="stat-note">Jobs still waiting for technician arrival.</div>
-      </div>
-
-      <div class="stat-card">
-        <div class="stat-label">Checked In</div>
-        <div class="stat-value" id="statActive">0</div>
-        <div class="stat-note">Appointments currently active on-site.</div>
-      </div>
-
-      <div class="stat-card">
-        <div class="stat-label">Completed</div>
-        <div class="stat-value" id="statComplete">0</div>
-        <div class="stat-note">Jobs already checked out today.</div>
-      </div>
-    </section>
-
-    <section class="board">
+    <div class="board">
       <div class="column">
-        <div class="column-head">
-          <div>
-            <h3>Upcoming</h3>
-            <p>Appointments not checked in yet.</p>
-          </div>
-          <div class="count-chip upcoming" id="upcomingCount">0</div>
+        <div class="column-header">
+          <h2>Not Checked In</h2>
+          <p>Jobs scheduled but not yet checked in.</p>
         </div>
-        <div class="job-list" id="upcomingList"></div>
+        <div id="not_checked_in_list" class="column-body"></div>
       </div>
 
       <div class="column">
-        <div class="column-head">
-          <div>
-            <h3>Active</h3>
-            <p>Technicians currently on-site.</p>
-          </div>
-          <div class="count-chip active" id="activeCount">0</div>
+        <div class="column-header">
+          <h2>Checked In</h2>
+          <p>Jobs currently active on-site.</p>
         </div>
-        <div class="job-list" id="activeList"></div>
+        <div id="checked_in_list" class="column-body"></div>
       </div>
 
       <div class="column">
-        <div class="column-head">
-          <div>
-            <h3>Completed</h3>
-            <p>Jobs checked out for today.</p>
-          </div>
-          <div class="count-chip complete" id="completeCount">0</div>
+        <div class="column-header">
+          <h2>Completed</h2>
+          <p>Jobs checked out and finished.</p>
         </div>
-        <div class="job-list" id="completeList"></div>
+        <div id="completed_list" class="column-body"></div>
       </div>
-    </section>
+    </div>
   </div>
 
   <script>
@@ -610,50 +383,6 @@
 
     function goTo(page) {
       window.location.href = page;
-    }
-
-    async function fetchEvents() {
-      const response = await fetch(`${API_URL}/events`);
-      eventsCache = await response.json();
-    }
-
-    async function updateEvent(eventId, payload) {
-      const response = await fetch(`${API_URL}/events/${eventId}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload)
-      });
-      return response;
-    }
-
-    function todayString() {
-      const now = new Date();
-      const year = now.getFullYear();
-      const month = String(now.getMonth() + 1).padStart(2, "0");
-      const day = String(now.getDate()).padStart(2, "0");
-      return `${year}-${month}-${day}`;
-    }
-
-    function normalizeStatus(event) {
-      if (event.checked_out) return "Checked Out";
-      if (event.checked_in) return "Checked In";
-      return "Not Checked In";
-    }
-
-    function getStatusClass(status) {
-      if (status === "Checked In") return "active";
-      if (status === "Checked Out") return "complete";
-      return "upcoming";
-    }
-
-    function getDisplayTime(event) {
-      if (event.displayTime && String(event.displayTime).trim()) {
-        return `${event.displayTime} (Local Time)`;
-      }
-      if (event.arrival_type === "window" && event.window_start && event.window_end) {
-        return `${event.window_start} - ${event.window_end} (Local Time)`;
-      }
-      return "No time listed";
     }
 
     function escapeHtml(value) {
@@ -665,52 +394,178 @@
         .replace(/>/g, "&gt;");
     }
 
-    function currentLocalTime() {
-      return new Date().toLocaleTimeString([], {
-        hour: "numeric",
-        minute: "2-digit"
+    function nowLocalTimeString() {
+      return new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+    }
+
+    function setTodayFilter() {
+      const now = new Date();
+      const y = now.getFullYear();
+      const m = String(now.getMonth() + 1).padStart(2, "0");
+      const d = String(now.getDate()).padStart(2, "0");
+      document.getElementById("filter_date").value = `${y}-${m}-${d}`;
+    }
+
+    function getBoardState(event) {
+      if (event.checked_out) return "completed";
+      if (event.checked_in) return "checked_in";
+      return "not_checked_in";
+    }
+
+    function getFilteredEvents() {
+      const dateFilter = document.getElementById("filter_date").value;
+      const templateFilter = document.getElementById("template_filter").value;
+
+      return eventsCache.filter(event => {
+        const matchesDate = !dateFilter || (event.site_date || event.date) === dateFilter;
+        const matchesType = templateFilter === "all" || event.template_type === templateFilter;
+        return matchesDate && matchesType;
       });
     }
 
-    function sortEvents(events) {
-      return [...events].sort((a, b) => {
-        const aTime = String(a.displayTime || a.time || "").toLowerCase();
-        const bTime = String(b.displayTime || b.time || "").toLowerCase();
-        return aTime.localeCompare(bTime);
+    async function fetchEvents() {
+      const response = await fetch(`${API_URL}/events`);
+      if (!response.ok) {
+        throw new Error("Unable to load events.");
+      }
+      eventsCache = await response.json();
+    }
+
+    function renderBoard() {
+      const notCheckedInList = document.getElementById("not_checked_in_list");
+      const checkedInList = document.getElementById("checked_in_list");
+      const completedList = document.getElementById("completed_list");
+
+      notCheckedInList.innerHTML = "";
+      checkedInList.innerHTML = "";
+      completedList.innerHTML = "";
+
+      const filtered = getFilteredEvents();
+
+      const notCheckedIn = filtered.filter(e => getBoardState(e) === "not_checked_in");
+      const checkedIn = filtered.filter(e => getBoardState(e) === "checked_in");
+      const completed = filtered.filter(e => getBoardState(e) === "completed");
+
+      renderList(notCheckedInList, notCheckedIn);
+      renderList(checkedInList, checkedIn);
+      renderList(completedList, completed);
+    }
+
+    function renderList(container, items) {
+      if (!items.length) {
+        container.innerHTML = `<div class="empty-state">No jobs in this column.</div>`;
+        return;
+      }
+
+      container.innerHTML = items.map(event => {
+        const timeText =
+          event.displayTime ||
+          event.time ||
+          `${event.window_start || ""}${event.window_start && event.window_end ? " - " : ""}${event.window_end || ""}`;
+
+        const clickupText = event.project_type === "both"
+          ? `IP: ${escapeHtml(event.ip_camera_clickup_id || "None")} | AC: ${escapeHtml(event.access_control_clickup_id || "None")}`
+          : escapeHtml(event.task_id || "None");
+
+        const proposalText = event.project_type === "both"
+          ? `IP: ${escapeHtml(event.ip_camera_proposal || "None")} | AC: ${escapeHtml(event.access_control_proposal || "None")}`
+          : escapeHtml(event.proposal || "None");
+
+        const checkInText = event.check_in_time
+          ? `Checked in: ${escapeHtml(event.check_in_time)}`
+          : "Checked in: Not sent";
+
+        const checkOutText = event.check_out_time
+          ? `Checked out: ${escapeHtml(event.check_out_time)}`
+          : "Checked out: Not sent";
+
+        return `
+          <div class="card">
+            <h3>${escapeHtml(event.client || "No client listed")}</h3>
+            <div class="line"><strong>Site:</strong> ${escapeHtml(event.site || "No site listed")}</div>
+            <div class="line"><strong>Type:</strong> ${escapeHtml(event.template_type || "No type")}</div>
+            <div class="line"><strong>Project Scope:</strong> ${escapeHtml(event.project_type || "No scope")}</div>
+            <div class="line"><strong>Tech:</strong> ${escapeHtml(event.technician || "No technician listed")}</div>
+            <div class="line"><strong>Time:</strong> ${escapeHtml(timeText || "No time listed")}</div>
+            <div class="line"><strong>ClickUp:</strong> ${clickupText}</div>
+            <div class="line"><strong>Proposal:</strong> ${proposalText}</div>
+            <div class="line">${checkInText}</div>
+            <div class="line">${checkOutText}</div>
+
+            <div class="pill-row">
+              ${event.checked_in
+                ? `<span class="pill success">Checked In</span>`
+                : `<span class="pill warning">Not Checked In</span>`}
+              ${event.checked_out
+                ? `<span class="pill danger">Completed</span>`
+                : ``}
+            </div>
+
+            <div class="actions">
+              ${!event.checked_in
+                ? `<button class="btn success" onclick="sendCheckIn(${event.id})">Send Check-In</button>`
+                : ``}
+              ${event.checked_in && !event.checked_out
+                ? `<button class="btn warning" onclick="sendCheckOut(${event.id})">Send Check-Out</button>`
+                : ``}
+              <button class="btn secondary" onclick="moveBackToNotCheckedIn(${event.id})">Reset Status</button>
+            </div>
+          </div>
+        `;
+      }).join("");
+    }
+
+    async function updateEventStatus(event, updates) {
+      const payload = {
+        ...event,
+        ...updates
+      };
+
+      const response = await fetch(`${API_URL}/events/${event.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
       });
+
+      const text = await response.text();
+      let data = {};
+
+      try {
+        data = text ? JSON.parse(text) : {};
+      } catch {
+        throw new Error(text || "Invalid backend response.");
+      }
+
+      if (!response.ok) {
+        throw new Error(data.detail || "Unable to update event.");
+      }
+
+      return data;
     }
 
     async function sendCheckIn(eventId) {
-      const event = eventsCache.find(e => e.id === eventId);
-      if (!event) return;
-
-      if (!event.task_id) {
-        alert("This appointment is missing a ClickUp Task ID.");
-        return;
-      }
-
-      const time = currentLocalTime();
-
-      const updatedPayload = {
-        ...event,
-        checked_in: true,
-        checked_out: false,
-        check_in_time: time,
-        check_out_time: event.check_out_time || ""
-      };
-
-      const updateResponse = await updateEvent(eventId, updatedPayload);
-      if (!updateResponse.ok) {
-        alert("Unable to save check-in status to the shared backend.");
-        return;
-      }
-
       try {
+        const event = eventsCache.find(e => e.id === eventId);
+        if (!event) return;
+
+        const taskIdToUse =
+          event.project_type === "both"
+            ? (event.ip_camera_clickup_id || event.access_control_clickup_id || "")
+            : (event.task_id || "");
+
+        if (!taskIdToUse) {
+          alert("This card does not have a ClickUp ID.");
+          return;
+        }
+
+        const time = nowLocalTimeString();
+
         const response = await fetch(`${API_URL}/send-checkin`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            task_id: event.task_id || "",
+            event_id: event.id,
+            task_id: taskIdToUse,
             client: event.client || "",
             site: event.site || "",
             technician: event.technician || "",
@@ -718,48 +573,52 @@
           })
         });
 
-        const data = await response.json();
-        if (!(data.status_code >= 200 && data.status_code < 300)) {
-          alert("Check-in saved, but webhook did not confirm success.");
-        }
-      } catch (error) {
-        alert("Check-in saved, but webhook request failed.");
-      }
+        const text = await response.text();
+        let data = {};
 
-      await initPage(false);
+        try {
+          data = text ? JSON.parse(text) : {};
+        } catch {
+          throw new Error(text || "Invalid backend response.");
+        }
+
+        if (!response.ok || data.status === "error") {
+          throw new Error(data.response_text || data.detail || "Check-in failed");
+        }
+
+        await fetchEvents();
+        renderBoard();
+
+        alert(`Check-in notification sent${data.sent_to?.length ? ` to: ${data.sent_to.join(", ")}` : "."}`);
+      } catch (error) {
+        console.error(error);
+        alert(`Check-in failed: ${error.message}`);
+      }
     }
 
     async function sendCheckOut(eventId) {
-      const event = eventsCache.find(e => e.id === eventId);
-      if (!event) return;
-
-      if (!event.task_id) {
-        alert("This appointment is missing a ClickUp Task ID.");
-        return;
-      }
-
-      const time = currentLocalTime();
-
-      const updatedPayload = {
-        ...event,
-        checked_in: true,
-        checked_out: true,
-        check_out_time: time,
-        check_in_time: event.check_in_time || ""
-      };
-
-      const updateResponse = await updateEvent(eventId, updatedPayload);
-      if (!updateResponse.ok) {
-        alert("Unable to save check-out status to the shared backend.");
-        return;
-      }
-
       try {
+        const event = eventsCache.find(e => e.id === eventId);
+        if (!event) return;
+
+        const taskIdToUse =
+          event.project_type === "both"
+            ? (event.ip_camera_clickup_id || event.access_control_clickup_id || "")
+            : (event.task_id || "");
+
+        if (!taskIdToUse) {
+          alert("This card does not have a ClickUp ID.");
+          return;
+        }
+
+        const time = nowLocalTimeString();
+
         const response = await fetch(`${API_URL}/send-checkout`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            task_id: event.task_id || "",
+            event_id: event.id,
+            task_id: taskIdToUse,
             client: event.client || "",
             site: event.site || "",
             technician: event.technician || "",
@@ -767,133 +626,68 @@
           })
         });
 
-        const data = await response.json();
-        if (!(data.status_code >= 200 && data.status_code < 300)) {
-          alert("Check-out saved, but webhook did not confirm success.");
+        const text = await response.text();
+        let data = {};
+
+        try {
+          data = text ? JSON.parse(text) : {};
+        } catch {
+          throw new Error(text || "Invalid backend response.");
         }
+
+        if (!response.ok || data.status === "error") {
+          throw new Error(data.response_text || data.detail || "Check-out failed");
+        }
+
+        await fetchEvents();
+        renderBoard();
+
+        alert(`Check-out notification sent${data.sent_to?.length ? ` to: ${data.sent_to.join(", ")}` : "."}`);
       } catch (error) {
-        alert("Check-out saved, but webhook request failed.");
+        console.error(error);
+        alert(`Check-out failed: ${error.message}`);
       }
-
-      await initPage(false);
     }
 
-    async function resetStatus(eventId) {
-      const event = eventsCache.find(e => e.id === eventId);
-      if (!event) return;
+    async function moveBackToNotCheckedIn(eventId) {
+      try {
+        const event = eventsCache.find(e => e.id === eventId);
+        if (!event) return;
 
-      const response = await updateEvent(eventId, {
-        ...event,
-        checked_in: false,
-        checked_out: false,
-        check_in_time: "",
-        check_out_time: ""
-      });
+        await updateEventStatus(event, {
+          checked_in: false,
+          checked_out: false,
+          check_in_time: "",
+          check_out_time: ""
+        });
 
-      if (!response.ok) {
-        alert("Unable to reset status.");
-        return;
+        await fetchEvents();
+        renderBoard();
+      } catch (error) {
+        console.error(error);
+        alert(`Reset failed: ${error.message}`);
       }
-
-      await initPage(false);
-      alert("Appointment status reset.");
     }
 
-    function renderCard(event) {
-      const status = normalizeStatus(event);
-      const statusClass = getStatusClass(status);
-
-      return `
-        <div class="job-card">
-          <div class="job-strip ${statusClass}"></div>
-          <div class="job-body">
-            <div class="job-top">
-              <h4 class="job-title">${escapeHtml(event.client || "No client listed")}</h4>
-              <div class="job-status ${statusClass}">${escapeHtml(status)}</div>
-            </div>
-
-            <p class="job-site">${escapeHtml(event.site || "No site listed")}</p>
-
-            <div class="job-details">
-              <div class="job-detail">
-                <div class="job-detail-label">Your Time</div>
-                <div class="job-detail-value">${escapeHtml(getDisplayTime(event))}</div>
-              </div>
-
-              <div class="job-detail">
-                <div class="job-detail-label">Technician</div>
-                <div class="job-detail-value">${escapeHtml(event.technician || "No technician listed")}</div>
-              </div>
-
-              <div class="job-detail">
-                <div class="job-detail-label">Checked In</div>
-                <div class="job-detail-value">${escapeHtml(event.check_in_time ? `${event.check_in_time} (Local Time)` : "—")}</div>
-              </div>
-
-              <div class="job-detail">
-                <div class="job-detail-label">Checked Out</div>
-                <div class="job-detail-value">${escapeHtml(event.check_out_time ? `${event.check_out_time} (Local Time)` : "—")}</div>
-              </div>
-            </div>
-
-            <div class="task-row">
-              <strong>ClickUp Task ID:</strong> ${escapeHtml(event.task_id || "Not added")}
-            </div>
-
-            <div class="button-row">
-              <button class="mini-btn checkin" onclick="sendCheckIn(${event.id})" ${status !== "Not Checked In" ? "disabled" : ""}>Check In</button>
-              <button class="mini-btn checkout" onclick="sendCheckOut(${event.id})" ${status !== "Checked In" ? "disabled" : ""}>Check Out</button>
-              <button class="mini-btn reset" onclick="resetStatus(${event.id})" ${status === "Not Checked In" ? "disabled" : ""}>Reset</button>
-            </div>
-          </div>
-        </div>
-      `;
-    }
-
-    function renderBoard() {
-      const today = todayString();
-
-      const todayEvents = eventsCache.filter(event => event.date === today);
-
-      const upcoming = sortEvents(todayEvents.filter(event => !event.checked_in && !event.checked_out));
-      const active = sortEvents(todayEvents.filter(event => event.checked_in && !event.checked_out));
-      const complete = sortEvents(todayEvents.filter(event => event.checked_out));
-
-      document.getElementById("statTotal").innerText = todayEvents.length;
-      document.getElementById("statUpcoming").innerText = upcoming.length;
-      document.getElementById("statActive").innerText = active.length;
-      document.getElementById("statComplete").innerText = complete.length;
-
-      document.getElementById("upcomingCount").innerText = upcoming.length;
-      document.getElementById("activeCount").innerText = active.length;
-      document.getElementById("completeCount").innerText = complete.length;
-
-      const upcomingList = document.getElementById("upcomingList");
-      const activeList = document.getElementById("activeList");
-      const completeList = document.getElementById("completeList");
-
-      upcomingList.innerHTML = upcoming.length
-        ? upcoming.map(renderCard).join("")
-        : `<div class="empty-state">No upcoming appointments for today.</div>`;
-
-      activeList.innerHTML = active.length
-        ? active.map(renderCard).join("")
-        : `<div class="empty-state">No active jobs right now.</div>`;
-
-      completeList.innerHTML = complete.length
-        ? complete.map(renderCard).join("")
-        : `<div class="empty-state">No completed jobs for today yet.</div>`;
-    }
-
-    async function initPage(showErrors = true) {
+    async function loadBoard() {
       try {
         await fetchEvents();
         renderBoard();
       } catch (error) {
-        if (showErrors) {
-          alert("Unable to load shared appointments from the backend.");
-        }
+        console.error(error);
+        alert(`Board load failed: ${error.message}`);
       }
+    }
+
+    function wireFilters() {
+      document.getElementById("filter_date").addEventListener("change", renderBoard);
+      document.getElementById("template_filter").addEventListener("change", renderBoard);
+    }
+
+    function initPage() {
+      setTodayFilter();
+      wireFilters();
+      loadBoard();
     }
 
     initPage();
