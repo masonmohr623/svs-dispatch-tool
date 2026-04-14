@@ -527,7 +527,7 @@
         </datalist>
 
         <div class="help-box">
-          For Multi Site, this page creates one combined email but saves each site as its own event in the calendar and check-in board.
+          This fixes the date format and uses the site’s local time zone to decide whether the greeting should say morning, afternoon, or evening.
         </div>
 
         <div class="actions">
@@ -540,9 +540,6 @@
 
       <div class="panel">
         <h2>Generated Output</h2>
-        <div class="output-note">
-          Multi-site survey confirmations generate one clean email with separate Site 1 and Site 2 sections.
-        </div>
 
         <label for="subject_output">Subject</label>
         <textarea id="subject_output" class="subject-box"></textarea>
@@ -638,7 +635,69 @@
       const dt = new Date(dateStr + "T12:00:00");
       const day = dt.getDate();
       const suffix = (day >= 11 && day <= 13) ? "th" : ({1:"st",2:"nd",3:"rd"}[day % 10] || "th");
-      return dt.toLocaleDateString("en-US", { weekday: "long", month: "long" }).replace(",", "") + ` ${day}${suffix}`;
+      const weekday = dt.toLocaleDateString("en-US", { weekday: "long" });
+      const month = dt.toLocaleDateString("en-US", { month: "long" });
+      return `${weekday}, ${month} ${day}${suffix}`;
+    }
+
+    function getAddressState(address) {
+      const upper = String(address || "").toUpperCase().trim();
+      const abbrevMatch = upper.match(/\b(AL|AK|AZ|AR|CA|CO|CT|DE|FL|GA|HI|ID|IL|IN|IA|KS|KY|LA|ME|MD|MA|MI|MN|MS|MO|MT|NE|NV|NH|NJ|NM|NY|NC|ND|OH|OK|OR|PA|RI|SC|SD|TN|TX|UT|VT|VA|WA|WV|WI|WY)\b(?:\s+\d{5}(?:-\d{4})?)?$/);
+      if (abbrevMatch) return abbrevMatch[1];
+
+      const stateNames = {
+        ALABAMA: "AL", ALASKA: "AK", ARIZONA: "AZ", ARKANSAS: "AR", CALIFORNIA: "CA",
+        COLORADO: "CO", CONNECTICUT: "CT", DELAWARE: "DE", FLORIDA: "FL", GEORGIA: "GA",
+        HAWAII: "HI", IDAHO: "ID", ILLINOIS: "IL", INDIANA: "IN", IOWA: "IA",
+        KANSAS: "KS", KENTUCKY: "KY", LOUISIANA: "LA", MAINE: "ME", MARYLAND: "MD",
+        MASSACHUSETTS: "MA", MICHIGAN: "MI", MINNESOTA: "MN", MISSISSIPPI: "MS",
+        MISSOURI: "MO", MONTANA: "MT", NEBRASKA: "NE", NEVADA: "NV", "NEW HAMPSHIRE": "NH",
+        "NEW JERSEY": "NJ", "NEW MEXICO": "NM", "NEW YORK": "NY", "NORTH CAROLINA": "NC",
+        "NORTH DAKOTA": "ND", OHIO: "OH", OKLAHOMA: "OK", OREGON: "OR", PENNSYLVANIA: "PA",
+        "RHODE ISLAND": "RI", "SOUTH CAROLINA": "SC", "SOUTH DAKOTA": "SD", TENNESSEE: "TN",
+        TEXAS: "TX", UTAH: "UT", VERMONT: "VT", VIRGINIA: "VA", WASHINGTON: "WA",
+        "WEST VIRGINIA": "WV", WISCONSIN: "WI", WYOMING: "WY"
+      };
+
+      for (const [name, abbr] of Object.entries(stateNames)) {
+        if (upper.includes(name)) return abbr;
+      }
+      return null;
+    }
+
+    function inferTimeZoneFromAddress(address) {
+      const state = getAddressState(address);
+      const map = {
+        AL: "America/Chicago", AK: "America/Anchorage", AZ: "America/Phoenix", AR: "America/Chicago",
+        CA: "America/Los_Angeles", CO: "America/Denver", CT: "America/New_York", DE: "America/New_York",
+        FL: "America/New_York", GA: "America/New_York", HI: "Pacific/Honolulu", ID: "America/Denver",
+        IL: "America/Chicago", IN: "America/New_York", IA: "America/Chicago", KS: "America/Chicago",
+        KY: "America/New_York", LA: "America/Chicago", ME: "America/New_York", MD: "America/New_York",
+        MA: "America/New_York", MI: "America/New_York", MN: "America/Chicago", MS: "America/Chicago",
+        MO: "America/Chicago", MT: "America/Denver", NE: "America/Chicago", NV: "America/Los_Angeles",
+        NH: "America/New_York", NJ: "America/New_York", NM: "America/Denver", NY: "America/New_York",
+        NC: "America/New_York", ND: "America/Chicago", OH: "America/New_York", OK: "America/Chicago",
+        OR: "America/Los_Angeles", PA: "America/New_York", RI: "America/New_York", SC: "America/New_York",
+        SD: "America/Chicago", TN: "America/Chicago", TX: "America/Chicago", UT: "America/Denver",
+        VT: "America/New_York", VA: "America/New_York", WA: "America/Los_Angeles", WV: "America/New_York",
+        WI: "America/Chicago", WY: "America/Denver"
+      };
+      return map[state] || Intl.DateTimeFormat().resolvedOptions().timeZone;
+    }
+
+    function getGreetingFromTimeZone(address) {
+      const timeZone = inferTimeZoneFromAddress(address);
+      const localHourString = new Intl.DateTimeFormat("en-US", {
+        hour: "numeric",
+        hour12: false,
+        timeZone
+      }).format(new Date());
+
+      const hour = parseInt(localHourString, 10);
+
+      if (hour < 12) return "morning";
+      if (hour < 17) return "afternoon";
+      return "evening";
     }
 
     function getScopeLabel(projectType) {
@@ -733,7 +792,9 @@ Access Control Proposal #: ${site.access_control_proposal}`;
     }
 
     function buildSingleSiteEmail(projectType, techName, techPhone, site) {
-      return `Good afternoon everyone,
+      const greeting = getGreetingFromTimeZone(site.address);
+
+      return `Good ${greeting} everyone,
 
 The technician is confirmed for ${buildArrivalText(site)} for arrival on site.
 
@@ -763,7 +824,9 @@ Thank you,`;
     }
 
     function buildMultiSiteEmail(projectType, techName, techPhone, site1, site2) {
-      return `Good afternoon everyone,
+      const greeting = getGreetingFromTimeZone(site1.address);
+
+      return `Good ${greeting} everyone,
 
 The technician is confirmed for the following site survey walkthroughs.
 
@@ -837,7 +900,7 @@ Thank you,`;
         window_end: site.arrival_type === "window" ? site.window_end : "",
         displayTime: displayTime,
         site_display_time: displayTime,
-        site_timezone: "",
+        site_timezone: inferTimeZoneFromAddress(site.address),
         site_timezone_label: "",
         arrival_type: site.arrival_type,
         checked_in: false,
@@ -891,7 +954,7 @@ Thank you,`;
           await saveEventForSite(site1, projectType, techName, techPhone);
           await saveEventForSite(site2, projectType, techName, techPhone);
         } else {
-          subject = `${getSubjectPrefix(projectType, false)} for ${formatPrettyDate(site1.date)} ${site1.arrival_type === "window" ? `with an Arrival Window of ${site1.window_start} - ${site1.window_end} (Local Time)` : `at ${site1.time} (Local Time)`}`;
+          subject = `${getSubjectPrefix(projectType, false)} for ${buildArrivalText(site1)}`;
           body = buildSingleSiteEmail(projectType, techName, techPhone, site1);
 
           await saveEventForSite(site1, projectType, techName, techPhone);
