@@ -458,6 +458,34 @@
       color: var(--muted);
     }
 
+    .card-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 8px;
+    }
+
+    .mini-btn {
+      border: none;
+      border-radius: 12px;
+      padding: 10px 12px;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .mini-btn.edit {
+      background: var(--svs-soft);
+      color: var(--svs-dark);
+      border: 1px solid var(--border);
+    }
+
+    .mini-btn.delete {
+      background: var(--red-soft);
+      color: var(--red);
+      border: 1px solid #f6c7c7;
+    }
+
     .empty-state {
       border: 1px dashed var(--border);
       border-radius: var(--radius-lg);
@@ -467,6 +495,130 @@
       font-size: 14px;
       line-height: 1.6;
       text-align: center;
+    }
+
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.35);
+      backdrop-filter: blur(4px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      z-index: 9999;
+    }
+
+    .modal-overlay.show {
+      display: flex;
+    }
+
+    .modal {
+      width: min(900px, 100%);
+      max-height: 90vh;
+      overflow-y: auto;
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      box-shadow: 0 24px 60px rgba(15, 23, 42, 0.2);
+    }
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 14px;
+      padding: 18px 20px;
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      background: #fff;
+      z-index: 2;
+    }
+
+    .modal-header h3 {
+      margin: 0;
+      font-size: 24px;
+      color: var(--text);
+    }
+
+    .close-btn {
+      border: 1px solid var(--border);
+      background: #fff;
+      color: var(--text);
+      border-radius: 12px;
+      padding: 10px 12px;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .modal-body {
+      padding: 20px;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+    }
+
+    .field.full {
+      grid-column: 1 / -1;
+    }
+
+    .field label {
+      display: block;
+      margin-bottom: 7px;
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--svs-dark);
+      text-transform: uppercase;
+      letter-spacing: 0.45px;
+    }
+
+    .field input,
+    .field select {
+      width: 100%;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 13px 14px;
+      font-size: 15px;
+      color: var(--text);
+      background: #fbfdfe;
+      outline: none;
+    }
+
+    .modal-actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 20px;
+    }
+
+    .save-btn,
+    .cancel-btn {
+      border: none;
+      border-radius: 14px;
+      padding: 13px 18px;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .save-btn {
+      background: linear-gradient(135deg, var(--svs-dark), var(--svs-blue));
+      color: white;
+    }
+
+    .cancel-btn {
+      background: var(--svs-soft);
+      color: var(--svs-dark);
+      border: 1px solid var(--border);
+    }
+
+    .hidden {
+      display: none !important;
     }
 
     @media (max-width: 1200px) {
@@ -497,6 +649,10 @@
 
       .brand-text h1 {
         font-size: 25px;
+      }
+
+      .form-grid {
+        grid-template-columns: 1fr;
       }
     }
 
@@ -598,11 +754,146 @@
     </div>
   </div>
 
+  <div id="edit_modal_overlay" class="modal-overlay">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>Edit Event</h3>
+        <button class="close-btn" onclick="closeEditModal()">Close</button>
+      </div>
+
+      <div class="modal-body">
+        <div class="form-grid">
+          <div class="field">
+            <label for="edit_client">Client</label>
+            <input id="edit_client">
+          </div>
+
+          <div class="field">
+            <label for="edit_site">Site</label>
+            <input id="edit_site">
+          </div>
+
+          <div class="field full">
+            <label for="edit_address">Address</label>
+            <input id="edit_address">
+          </div>
+
+          <div class="field">
+            <label for="edit_technician">Technician</label>
+            <input id="edit_technician">
+          </div>
+
+          <div class="field">
+            <label for="edit_technician_phone">Technician Phone</label>
+            <input id="edit_technician_phone">
+          </div>
+
+          <div class="field">
+            <label for="edit_contact_name">Site Contact Name</label>
+            <input id="edit_contact_name">
+          </div>
+
+          <div class="field">
+            <label for="edit_contact_phone">Site Contact Phone</label>
+            <input id="edit_contact_phone">
+          </div>
+
+          <div class="field full">
+            <label for="edit_contact_email">Site Contact Email</label>
+            <input id="edit_contact_email">
+          </div>
+
+          <div class="field">
+            <label for="edit_template_type">Template Type</label>
+            <select id="edit_template_type">
+              <option value="Survey">Survey</option>
+              <option value="Installation">Installation</option>
+              <option value="Service">Service</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label for="edit_project_type">Project Type</label>
+            <select id="edit_project_type" onchange="toggleEditProjectTypeFields()">
+              <option value="ip_camera">IP Camera</option>
+              <option value="access_control">Access Control</option>
+              <option value="both">IP Camera + Access Control</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label for="edit_date">Date</label>
+            <input type="date" id="edit_date">
+          </div>
+
+          <div class="field">
+            <label for="edit_arrival_type">Arrival Type</label>
+            <select id="edit_arrival_type" onchange="toggleEditArrivalType()">
+              <option value="exact">Exact Time</option>
+              <option value="window">Arrival Window</option>
+            </select>
+          </div>
+
+          <div class="field" id="edit_time_field">
+            <label for="edit_time">Time</label>
+            <input id="edit_time" placeholder="Example: 1:00 PM">
+          </div>
+
+          <div class="field hidden" id="edit_window_start_field">
+            <label for="edit_window_start">Window Start</label>
+            <input id="edit_window_start" placeholder="Example: 10:00 AM">
+          </div>
+
+          <div class="field hidden" id="edit_window_end_field">
+            <label for="edit_window_end">Window End</label>
+            <input id="edit_window_end" placeholder="Example: 12:00 PM">
+          </div>
+
+          <div class="field full" id="edit_single_clickup_field">
+            <label for="edit_task_id">ClickUp ID</label>
+            <input id="edit_task_id">
+          </div>
+
+          <div class="field full" id="edit_single_proposal_field">
+            <label for="edit_proposal">Proposal</label>
+            <input id="edit_proposal">
+          </div>
+
+          <div class="field full hidden" id="edit_ip_clickup_field">
+            <label for="edit_ip_camera_clickup_id">IP Camera ClickUp ID</label>
+            <input id="edit_ip_camera_clickup_id">
+          </div>
+
+          <div class="field full hidden" id="edit_ac_clickup_field">
+            <label for="edit_access_control_clickup_id">Access Control ClickUp ID</label>
+            <input id="edit_access_control_clickup_id">
+          </div>
+
+          <div class="field full hidden" id="edit_ip_proposal_field">
+            <label for="edit_ip_camera_proposal">IP Camera Proposal</label>
+            <input id="edit_ip_camera_proposal">
+          </div>
+
+          <div class="field full hidden" id="edit_ac_proposal_field">
+            <label for="edit_access_control_proposal">Access Control Proposal</label>
+            <input id="edit_access_control_proposal">
+          </div>
+        </div>
+
+        <div class="modal-actions">
+          <button class="save-btn" onclick="saveEditedEvent()">Save Changes</button>
+          <button class="cancel-btn" onclick="closeEditModal()">Cancel</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <script>
     const API_URL = "http://66.42.117.96:8000";
     let eventsCache = [];
     let currentMonthDate = new Date();
     let selectedDate = formatDateLocal(new Date());
+    let editingEvent = null;
 
     function goTo(page) {
       window.location.href = page;
@@ -794,6 +1085,10 @@
               <div class="status-row">
                 ${getStatusMarkup(event)}
               </div>
+              <div class="card-actions">
+                <button class="mini-btn edit" onclick="openEditModal(${event.id})">Edit</button>
+                <button class="mini-btn delete" onclick="deleteEvent(${event.id})">Delete</button>
+              </div>
             </div>
           `;
         })
@@ -817,11 +1112,199 @@
       renderSelectedDay();
     }
 
+    function toggleEditArrivalType() {
+      const type = document.getElementById("edit_arrival_type").value;
+      document.getElementById("edit_time_field").classList.toggle("hidden", type === "window");
+      document.getElementById("edit_window_start_field").classList.toggle("hidden", type !== "window");
+      document.getElementById("edit_window_end_field").classList.toggle("hidden", type !== "window");
+    }
+
+    function toggleEditProjectTypeFields() {
+      const projectType = document.getElementById("edit_project_type").value;
+      const both = projectType === "both";
+
+      document.getElementById("edit_single_clickup_field").classList.toggle("hidden", both);
+      document.getElementById("edit_single_proposal_field").classList.toggle("hidden", both);
+
+      document.getElementById("edit_ip_clickup_field").classList.toggle("hidden", !both);
+      document.getElementById("edit_ac_clickup_field").classList.toggle("hidden", !both);
+      document.getElementById("edit_ip_proposal_field").classList.toggle("hidden", !both);
+      document.getElementById("edit_ac_proposal_field").classList.toggle("hidden", !both);
+    }
+
+    function openEditModal(eventId) {
+      const event = eventsCache.find(e => e.id === eventId);
+      if (!event) return;
+
+      editingEvent = event;
+
+      document.getElementById("edit_client").value = event.client || "";
+      document.getElementById("edit_site").value = event.site || "";
+      document.getElementById("edit_address").value = event.address || "";
+      document.getElementById("edit_technician").value = event.technician || "";
+      document.getElementById("edit_technician_phone").value = event.technician_phone || "";
+      document.getElementById("edit_contact_name").value = event.contact_name || "";
+      document.getElementById("edit_contact_phone").value = event.contact_phone || "";
+      document.getElementById("edit_contact_email").value = event.contact_email || "";
+      document.getElementById("edit_template_type").value = event.template_type || "Survey";
+      document.getElementById("edit_project_type").value = event.project_type || "ip_camera";
+      document.getElementById("edit_date").value = event.site_date || event.date || "";
+      document.getElementById("edit_arrival_type").value = event.arrival_type || "exact";
+      document.getElementById("edit_time").value = event.time || "";
+      document.getElementById("edit_window_start").value = event.window_start || "";
+      document.getElementById("edit_window_end").value = event.window_end || "";
+      document.getElementById("edit_task_id").value = event.task_id || "";
+      document.getElementById("edit_proposal").value = event.proposal || "";
+      document.getElementById("edit_ip_camera_clickup_id").value = event.ip_camera_clickup_id || "";
+      document.getElementById("edit_access_control_clickup_id").value = event.access_control_clickup_id || "";
+      document.getElementById("edit_ip_camera_proposal").value = event.ip_camera_proposal || "";
+      document.getElementById("edit_access_control_proposal").value = event.access_control_proposal || "";
+
+      toggleEditArrivalType();
+      toggleEditProjectTypeFields();
+
+      document.getElementById("edit_modal_overlay").classList.add("show");
+    }
+
+    function closeEditModal() {
+      editingEvent = null;
+      document.getElementById("edit_modal_overlay").classList.remove("show");
+    }
+
+    function buildDisplayTime(arrivalType, time, windowStart, windowEnd) {
+      if (arrivalType === "window") {
+        return `${windowStart || ""}${windowStart && windowEnd ? " - " : ""}${windowEnd || ""}`.trim();
+      }
+      return time || "";
+    }
+
+    async function saveEditedEvent() {
+      if (!editingEvent) return;
+
+      try {
+        const projectType = document.getElementById("edit_project_type").value;
+        const arrivalType = document.getElementById("edit_arrival_type").value;
+        const date = document.getElementById("edit_date").value;
+        const time = document.getElementById("edit_time").value.trim();
+        const windowStart = document.getElementById("edit_window_start").value.trim();
+        const windowEnd = document.getElementById("edit_window_end").value.trim();
+
+        const updatedEvent = {
+          ...editingEvent,
+          client: document.getElementById("edit_client").value.trim(),
+          site: document.getElementById("edit_site").value.trim(),
+          address: document.getElementById("edit_address").value.trim(),
+          technician: document.getElementById("edit_technician").value.trim(),
+          technician_phone: document.getElementById("edit_technician_phone").value.trim(),
+          contact_name: document.getElementById("edit_contact_name").value.trim(),
+          contact_phone: document.getElementById("edit_contact_phone").value.trim(),
+          contact_email: document.getElementById("edit_contact_email").value.trim(),
+          template_type: document.getElementById("edit_template_type").value,
+          project_type: projectType,
+          date: date,
+          site_date: date,
+          arrival_type: arrivalType,
+          time: arrivalType === "exact" ? time : "",
+          window_start: arrivalType === "window" ? windowStart : "",
+          window_end: arrivalType === "window" ? windowEnd : "",
+          displayTime: buildDisplayTime(arrivalType, time, windowStart, windowEnd),
+          site_display_time: buildDisplayTime(arrivalType, time, windowStart, windowEnd),
+          task_id: projectType === "both" ? "" : document.getElementById("edit_task_id").value.trim(),
+          proposal: projectType === "both" ? "" : document.getElementById("edit_proposal").value.trim(),
+          ip_camera_clickup_id: projectType === "both" ? document.getElementById("edit_ip_camera_clickup_id").value.trim() : "",
+          access_control_clickup_id: projectType === "both" ? document.getElementById("edit_access_control_clickup_id").value.trim() : "",
+          ip_camera_proposal: projectType === "both" ? document.getElementById("edit_ip_camera_proposal").value.trim() : "",
+          access_control_proposal: projectType === "both" ? document.getElementById("edit_access_control_proposal").value.trim() : ""
+        };
+
+        if (!updatedEvent.client || !updatedEvent.site || !updatedEvent.address || !updatedEvent.date) {
+          alert("Please fill out client, site, address, and date.");
+          return;
+        }
+
+        if (arrivalType === "exact" && !time) {
+          alert("Please enter a time.");
+          return;
+        }
+
+        if (arrivalType === "window" && (!windowStart || !windowEnd)) {
+          alert("Please enter both window times.");
+          return;
+        }
+
+        const response = await fetch(`${API_URL}/events/${editingEvent.id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(updatedEvent)
+        });
+
+        const text = await response.text();
+        let data = {};
+
+        try {
+          data = text ? JSON.parse(text) : {};
+        } catch {
+          throw new Error(text || "Invalid backend response.");
+        }
+
+        if (!response.ok) {
+          throw new Error(data.detail || "Unable to save event.");
+        }
+
+        closeEditModal();
+        await fetchEvents();
+        renderCalendar();
+        renderSelectedDay();
+        alert("Event updated.");
+      } catch (error) {
+        console.error(error);
+        alert(`Save failed: ${error.message}`);
+      }
+    }
+
+    async function deleteEvent(eventId) {
+      const confirmed = confirm("Delete this event?");
+      if (!confirmed) return;
+
+      try {
+        const response = await fetch(`${API_URL}/events/${eventId}`, {
+          method: "DELETE"
+        });
+
+        const text = await response.text();
+        let data = {};
+
+        try {
+          data = text ? JSON.parse(text) : {};
+        } catch {
+          throw new Error(text || "Invalid backend response.");
+        }
+
+        if (!response.ok) {
+          throw new Error(data.detail || "Unable to delete event.");
+        }
+
+        await fetchEvents();
+        renderCalendar();
+        renderSelectedDay();
+        alert("Event deleted.");
+      } catch (error) {
+        console.error(error);
+        alert(`Delete failed: ${error.message}`);
+      }
+    }
+
     async function initPage() {
       await fetchEvents();
       renderCalendar();
       renderSelectedDay();
     }
+
+    document.getElementById("edit_modal_overlay").addEventListener("click", (event) => {
+      if (event.target.id === "edit_modal_overlay") {
+        closeEditModal();
+      }
+    });
 
     initPage();
   </script>
