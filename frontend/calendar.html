@@ -6,19 +6,27 @@
   <title>SVS Calendar</title>
   <style>
     :root {
+      --bg: #f5f6f8;
+      --panel: rgba(255,255,255,0.92);
+      --panel-solid: #ffffff;
+      --border: #dde3ea;
+      --text: #1f2933;
+      --muted: #6b7785;
+      --shadow: 0 14px 32px rgba(31, 41, 51, 0.08);
+      --blue: #3b82f6;
+      --blue-soft: #dbeafe;
+      --green: #22c55e;
+      --green-soft: #dcfce7;
+      --amber: #f59e0b;
+      --amber-soft: #fef3c7;
+      --red: #ef4444;
+      --red-soft: #fee2e2;
       --svs-dark: #243746;
       --svs-blue: #49697c;
-      --svs-accent: #6f8ea0;
       --svs-soft: #edf3f6;
-      --svs-border: #c7d4dc;
-      --text: #1f2a33;
-      --muted: #647784;
-      --white: #ffffff;
-      --upcoming: #8a8f96;
-      --active: #2f7d4a;
-      --complete: #3f6f92;
-      --danger: #b64c4c;
-      --shadow: 0 14px 34px rgba(36, 55, 70, 0.12);
+      --radius-xl: 24px;
+      --radius-lg: 18px;
+      --radius-md: 14px;
     }
 
     * {
@@ -29,17 +37,17 @@
       margin: 0;
       font-family: Arial, Helvetica, sans-serif;
       background:
-        radial-gradient(circle at top left, rgba(111, 142, 160, 0.18), transparent 26%),
-        radial-gradient(circle at top right, rgba(73, 105, 124, 0.16), transparent 24%),
-        linear-gradient(180deg, #eef4f7 0%, #e7eef3 100%);
+        radial-gradient(circle at top left, rgba(73, 105, 124, 0.08), transparent 24%),
+        radial-gradient(circle at top right, rgba(59, 130, 246, 0.08), transparent 20%),
+        linear-gradient(180deg, #f8fafc 0%, #f3f5f8 100%);
       color: var(--text);
       min-height: 100vh;
     }
 
     .page {
-      max-width: 1420px;
+      max-width: 1540px;
       margin: 0 auto;
-      padding: 26px 20px 44px;
+      padding: 24px 18px 36px;
     }
 
     .topbar {
@@ -47,48 +55,48 @@
       justify-content: space-between;
       align-items: center;
       gap: 18px;
-      padding: 20px 24px;
+      padding: 18px 22px;
       border-radius: 26px;
-      background: rgba(255,255,255,0.92);
+      background: rgba(255,255,255,0.9);
       backdrop-filter: blur(8px);
-      border: 1px solid rgba(199, 212, 220, 0.95);
+      border: 1px solid var(--border);
       box-shadow: var(--shadow);
-      margin-bottom: 24px;
+      margin-bottom: 20px;
       flex-wrap: wrap;
     }
 
     .brand {
       display: flex;
       align-items: center;
-      gap: 18px;
+      gap: 16px;
       min-width: 0;
     }
 
     .brand img {
-      width: 84px;
-      height: 84px;
+      width: 76px;
+      height: 76px;
       object-fit: contain;
       background: #fff;
       border-radius: 18px;
       padding: 8px;
-      border: 1px solid var(--svs-border);
-      box-shadow: 0 8px 20px rgba(36, 55, 70, 0.1);
+      border: 1px solid var(--border);
       flex-shrink: 0;
     }
 
     .brand-text h1 {
       margin: 0;
       font-size: 30px;
+      line-height: 1.1;
       color: var(--svs-dark);
-      line-height: 1.15;
+      font-weight: 700;
     }
 
     .brand-text p {
-      margin: 7px 0 0;
-      color: var(--svs-blue);
+      margin: 6px 0 0;
+      color: var(--muted);
       font-size: 14px;
       font-weight: 700;
-      letter-spacing: 0.5px;
+      letter-spacing: 0.35px;
       text-transform: uppercase;
     }
 
@@ -99,350 +107,435 @@
     }
 
     .nav-btn {
-      border: none;
+      border: 1px solid var(--border);
       border-radius: 14px;
-      padding: 12px 16px;
-      background: var(--svs-soft);
+      padding: 12px 15px;
+      background: #fff;
       color: var(--svs-dark);
       font-size: 14px;
       font-weight: 700;
       cursor: pointer;
-      border: 1px solid var(--svs-border);
       transition: 0.18s ease;
     }
 
     .nav-btn:hover {
-      background: #dfe9ee;
+      background: #f4f7fa;
       transform: translateY(-1px);
     }
 
-    .layout {
+    .shell {
       display: grid;
-      grid-template-columns: 1.12fr 0.88fr;
-      gap: 22px;
+      grid-template-columns: 1.15fr 0.85fr;
+      gap: 20px;
+      align-items: start;
     }
 
-    .panel {
-      background: rgba(255,255,255,0.96);
-      border: 1px solid var(--svs-border);
-      border-radius: 24px;
-      padding: 24px;
+    .calendar-panel,
+    .details-panel {
+      background: rgba(255,255,255,0.94);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-xl);
       box-shadow: var(--shadow);
+      overflow: hidden;
     }
 
-    .calendar-head {
+    .calendar-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
       gap: 14px;
-      margin-bottom: 18px;
+      padding: 18px 20px;
+      border-bottom: 1px solid var(--border);
+      background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+      flex-wrap: wrap;
+    }
+
+    .calendar-title-wrap {
+      display: flex;
+      align-items: center;
+      gap: 12px;
       flex-wrap: wrap;
     }
 
     .calendar-title {
       font-size: 28px;
       font-weight: 700;
-      color: var(--svs-dark);
-    }
-
-    .calendar-actions {
-      display: flex;
-      gap: 10px;
-      flex-wrap: wrap;
-    }
-
-    .action-btn {
-      border: none;
-      border-radius: 14px;
-      padding: 12px 16px;
-      background: linear-gradient(135deg, var(--svs-dark), var(--svs-blue));
-      color: white;
-      font-size: 14px;
-      font-weight: 700;
-      cursor: pointer;
-      box-shadow: 0 10px 22px rgba(36, 55, 70, 0.16);
-    }
-
-    .action-btn.secondary {
-      background: var(--svs-soft);
-      color: var(--svs-dark);
-      border: 1px solid var(--svs-border);
-      box-shadow: none;
-    }
-
-    .action-btn:hover {
-      transform: translateY(-1px);
-    }
-
-    .weekday-row,
-    .calendar-grid {
-      display: grid;
-      grid-template-columns: repeat(7, minmax(0, 1fr));
-      gap: 10px;
-    }
-
-    .weekday {
-      text-align: center;
-      font-size: 12px;
-      font-weight: 700;
-      color: var(--svs-accent);
-      letter-spacing: 0.45px;
-      text-transform: uppercase;
-      padding-bottom: 4px;
-    }
-
-    .day {
-      min-height: 150px;
-      border: 1px solid var(--svs-border);
-      border-radius: 18px;
-      background: #fbfdfe;
-      padding: 10px;
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
-
-    .day.other-month {
-      opacity: 0.4;
-      background: #f5f8fa;
-    }
-
-    .day-number {
-      font-size: 15px;
-      font-weight: 700;
-      color: var(--svs-dark);
-    }
-
-    .event-card {
-      border-radius: 12px;
-      padding: 9px 10px;
-      border: 1px solid var(--svs-border);
-      font-size: 12px;
-      line-height: 1.4;
-      cursor: pointer;
-      transition: 0.16s ease;
-    }
-
-    .event-card:hover {
-      transform: translateY(-1px);
-      filter: brightness(0.99);
-    }
-
-    .event-card.upcoming {
-      background: #eff1f3;
-      border-color: #d5dbe0;
-    }
-
-    .event-card.active {
-      background: #e7f5ec;
-      border-color: #c4decf;
-    }
-
-    .event-card.complete {
-      background: #e8f0f7;
-      border-color: #c9d9e6;
-    }
-
-    .event-title {
-      font-weight: 700;
-      color: var(--svs-dark);
-      margin-bottom: 4px;
-    }
-
-    .event-time {
       color: var(--text);
-      margin-bottom: 6px;
+      margin: 0;
     }
 
-    .event-status {
-      display: inline-flex;
-      align-items: center;
-      border-radius: 999px;
-      padding: 4px 8px;
-      font-size: 11px;
-      font-weight: 700;
-    }
-
-    .event-status.upcoming {
-      background: #dfe4e8;
-      color: #5d646b;
-    }
-
-    .event-status.active {
-      background: #d7eedf;
-      color: #29653e;
-    }
-
-    .event-status.complete {
-      background: #dbe9f4;
-      color: #36617f;
-    }
-
-    .detail-title {
-      margin: 0 0 16px;
-      font-size: 24px;
-      color: var(--svs-dark);
-    }
-
-    .empty-state {
-      color: var(--muted);
-      font-size: 14px;
-      line-height: 1.6;
-    }
-
-    .status-pill {
+    .today-chip {
       display: inline-flex;
       align-items: center;
       border-radius: 999px;
       padding: 8px 12px;
-      font-size: 13px;
-      font-weight: 700;
-      margin-bottom: 16px;
-    }
-
-    .status-pill.upcoming {
-      background: #eff1f3;
-      color: #5d646b;
-      border: 1px solid #d7dde2;
-    }
-
-    .status-pill.active {
-      background: #e6f5ec;
-      color: #29653e;
-      border: 1px solid #c0dfcb;
-    }
-
-    .status-pill.complete {
-      background: #e8f0f7;
-      color: #36617f;
-      border: 1px solid #c8d9e7;
-    }
-
-    .detail-grid {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 14px;
-    }
-
-    .field.full {
-      grid-column: 1 / -1;
-    }
-
-    .field label {
-      display: block;
-      margin-bottom: 7px;
       font-size: 12px;
       font-weight: 700;
-      color: var(--svs-dark);
-      text-transform: uppercase;
-      letter-spacing: 0.45px;
+      background: var(--blue-soft);
+      color: var(--blue);
+      border: 1px solid #c9dcff;
     }
 
-    .field input,
-    .field textarea,
-    .field select {
-      width: 100%;
-      border: 1px solid var(--svs-border);
-      border-radius: 14px;
-      padding: 13px 14px;
-      font-size: 15px;
-      color: var(--text);
-      background: #fbfdfe;
-      outline: none;
-    }
-
-    .field textarea {
-      resize: vertical;
-      min-height: 110px;
-      line-height: 1.5;
-    }
-
-    .detail-actions {
+    .calendar-controls {
       display: flex;
       gap: 10px;
+      align-items: center;
       flex-wrap: wrap;
-      margin-top: 18px;
     }
 
-    .save-btn,
-    .delete-btn {
-      border: none;
+    .icon-btn,
+    .control-btn {
+      border: 1px solid var(--border);
+      background: #fff;
+      color: var(--text);
       border-radius: 14px;
-      padding: 13px 18px;
+      padding: 11px 14px;
       font-size: 14px;
       font-weight: 700;
       cursor: pointer;
       transition: 0.18s ease;
     }
 
-    .save-btn {
-      background: linear-gradient(135deg, var(--svs-dark), var(--svs-blue));
-      color: white;
-      box-shadow: 0 10px 22px rgba(36, 55, 70, 0.16);
-    }
-
-    .delete-btn {
-      background: #f8e7e7;
-      color: var(--danger);
-      border: 1px solid #efc7c7;
-    }
-
-    .save-btn:hover,
-    .delete-btn:hover {
+    .icon-btn:hover,
+    .control-btn:hover {
+      background: #f6f8fb;
       transform: translateY(-1px);
     }
 
-    @media (max-width: 1180px) {
-      .layout {
+    .calendar-grid-wrap {
+      padding: 14px 14px 16px;
+    }
+
+    .weekday-row {
+      display: grid;
+      grid-template-columns: repeat(7, minmax(0, 1fr));
+      gap: 8px;
+      margin-bottom: 8px;
+      padding: 0 2px;
+    }
+
+    .weekday {
+      padding: 10px 8px;
+      font-size: 12px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.45px;
+      font-weight: 700;
+      text-align: center;
+    }
+
+    .month-grid {
+      display: grid;
+      grid-template-columns: repeat(7, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .day-cell {
+      min-height: 128px;
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      background: #fff;
+      padding: 10px 10px 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      cursor: pointer;
+      transition: 0.18s ease;
+      overflow: hidden;
+    }
+
+    .day-cell:hover {
+      border-color: #cfd7e1;
+      transform: translateY(-1px);
+      box-shadow: 0 8px 18px rgba(31, 41, 51, 0.05);
+    }
+
+    .day-cell.other-month {
+      background: #fafbfd;
+      color: #9aa6b2;
+    }
+
+    .day-cell.selected {
+      border-color: #b9d2ff;
+      box-shadow: inset 0 0 0 1px #c9dcff;
+      background: #fcfdff;
+    }
+
+    .day-cell.today {
+      border-color: #bfdbfe;
+      background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+    }
+
+    .day-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .day-number {
+      width: 30px;
+      height: 30px;
+      border-radius: 999px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    .today .day-number {
+      background: var(--blue);
+      color: white;
+    }
+
+    .event-stack {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      min-height: 0;
+      overflow: hidden;
+    }
+
+    .event-pill {
+      border-radius: 10px;
+      padding: 6px 8px;
+      font-size: 11px;
+      font-weight: 700;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      border: 1px solid transparent;
+    }
+
+    .event-pill.survey {
+      background: var(--blue-soft);
+      color: var(--blue);
+      border-color: #cfe0ff;
+    }
+
+    .event-pill.installation {
+      background: var(--green-soft);
+      color: var(--green);
+      border-color: #ccefd9;
+    }
+
+    .event-pill.service {
+      background: var(--amber-soft);
+      color: var(--amber);
+      border-color: #f6e1a6;
+    }
+
+    .event-pill.completed {
+      background: var(--red-soft);
+      color: var(--red);
+      border-color: #f8caca;
+    }
+
+    .more-text {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--muted);
+      padding: 2px 2px 0;
+    }
+
+    .details-header {
+      padding: 20px 20px 16px;
+      border-bottom: 1px solid var(--border);
+      background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+    }
+
+    .details-header h2 {
+      margin: 0;
+      font-size: 24px;
+      color: var(--text);
+    }
+
+    .details-header p {
+      margin: 8px 0 0;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    .legend {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 14px;
+    }
+
+    .legend-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      border-radius: 999px;
+      padding: 7px 11px;
+      font-size: 12px;
+      font-weight: 700;
+      border: 1px solid var(--border);
+      background: #fff;
+      color: var(--text);
+    }
+
+    .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 999px;
+      flex-shrink: 0;
+    }
+
+    .dot.survey { background: var(--blue); }
+    .dot.installation { background: var(--green); }
+    .dot.service { background: var(--amber); }
+    .dot.completed { background: var(--red); }
+
+    .details-body {
+      padding: 16px;
+      max-height: 74vh;
+      overflow-y: auto;
+      display: grid;
+      gap: 12px;
+    }
+
+    .event-card {
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      background: #fff;
+      padding: 16px;
+      display: grid;
+      gap: 8px;
+    }
+
+    .event-card h3 {
+      margin: 0;
+      font-size: 18px;
+      color: var(--text);
+      line-height: 1.3;
+    }
+
+    .event-meta {
+      font-size: 14px;
+      color: var(--muted);
+      line-height: 1.5;
+      word-break: break-word;
+    }
+
+    .status-row {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 4px;
+    }
+
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      border-radius: 999px;
+      padding: 7px 10px;
+      font-size: 12px;
+      font-weight: 700;
+      border: 1px solid var(--border);
+      background: #f8fafc;
+      color: var(--text);
+    }
+
+    .status-pill.checked-in {
+      background: var(--green-soft);
+      color: var(--green);
+      border-color: #ccefd9;
+    }
+
+    .status-pill.completed {
+      background: var(--red-soft);
+      color: var(--red);
+      border-color: #f8caca;
+    }
+
+    .status-pill.not-checked {
+      background: #f8fafc;
+      color: var(--muted);
+    }
+
+    .empty-state {
+      border: 1px dashed var(--border);
+      border-radius: var(--radius-lg);
+      padding: 26px 18px;
+      background: #fff;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.6;
+      text-align: center;
+    }
+
+    @media (max-width: 1200px) {
+      .shell {
         grid-template-columns: 1fr;
+      }
+
+      .details-body {
+        max-height: none;
       }
     }
 
-    @media (max-width: 760px) {
-      .page {
-        padding: 18px 14px 34px;
-      }
-
-      .topbar {
-        padding: 18px;
-      }
-
-      .brand img {
-        width: 72px;
-        height: 72px;
-      }
-
-      .brand-text h1 {
-        font-size: 24px;
-      }
-
-      .weekday-row,
-      .calendar-grid {
+    @media (max-width: 820px) {
+      .month-grid,
+      .weekday-row {
         gap: 6px;
       }
 
-      .day {
-        min-height: 120px;
+      .day-cell {
+        min-height: 108px;
+        padding: 8px;
+        border-radius: 16px;
       }
 
-      .detail-grid {
-        grid-template-columns: 1fr;
+      .calendar-title {
+        font-size: 24px;
       }
 
-      .field.full {
-        grid-column: auto;
+      .brand-text h1 {
+        font-size: 25px;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .page {
+        padding: 16px 12px 28px;
+      }
+
+      .topbar {
+        padding: 16px;
+      }
+
+      .brand img {
+        width: 66px;
+        height: 66px;
+      }
+
+      .weekday {
+        font-size: 11px;
+        padding: 8px 4px;
+      }
+
+      .day-cell {
+        min-height: 98px;
+      }
+
+      .event-pill {
+        font-size: 10px;
       }
     }
   </style>
 </head>
 <body>
   <div class="page">
-
     <div class="topbar">
       <div class="brand">
         <img src="./svs-logo.png" alt="SVS Logo">
         <div class="brand-text">
-          <h1>Calendar</h1>
+          <h1>SVS Calendar</h1>
           <p>Secure Vision Solutions</p>
         </div>
       </div>
@@ -457,74 +550,79 @@
       </div>
     </div>
 
-    <div class="layout">
-      <div class="panel">
-        <div class="calendar-head">
-          <div class="calendar-title" id="month_title"></div>
-          <div class="calendar-actions">
-            <button class="action-btn secondary" onclick="changeMonth(-1)">Previous</button>
-            <button class="action-btn secondary" onclick="goToToday()">Today</button>
-            <button class="action-btn secondary" onclick="changeMonth(1)">Next</button>
+    <div class="shell">
+      <div class="calendar-panel">
+        <div class="calendar-header">
+          <div class="calendar-title-wrap">
+            <h2 id="month_label" class="calendar-title">Month</h2>
+            <span class="today-chip" id="today_chip">Today</span>
+          </div>
+
+          <div class="calendar-controls">
+            <button class="icon-btn" onclick="changeMonth(-1)">‹</button>
+            <button class="control-btn" onclick="goToToday()">Today</button>
+            <button class="icon-btn" onclick="changeMonth(1)">›</button>
           </div>
         </div>
 
-        <div class="weekday-row">
-          <div class="weekday">Sun</div>
-          <div class="weekday">Mon</div>
-          <div class="weekday">Tue</div>
-          <div class="weekday">Wed</div>
-          <div class="weekday">Thu</div>
-          <div class="weekday">Fri</div>
-          <div class="weekday">Sat</div>
-        </div>
+        <div class="calendar-grid-wrap">
+          <div class="weekday-row">
+            <div class="weekday">Sun</div>
+            <div class="weekday">Mon</div>
+            <div class="weekday">Tue</div>
+            <div class="weekday">Wed</div>
+            <div class="weekday">Thu</div>
+            <div class="weekday">Fri</div>
+            <div class="weekday">Sat</div>
+          </div>
 
-        <div class="calendar-grid" id="calendar_grid"></div>
+          <div id="month_grid" class="month-grid"></div>
+        </div>
       </div>
 
-      <div class="panel">
-        <h2 class="detail-title">Appointment Details</h2>
-        <div id="details_view" class="empty-state">Click any calendar event to view and edit its full details.</div>
+      <div class="details-panel">
+        <div class="details-header">
+          <h2 id="selected_day_title">Selected Day</h2>
+          <p id="selected_day_subtitle">Tap a day to view its events.</p>
+
+          <div class="legend">
+            <span class="legend-item"><span class="dot survey"></span> Survey</span>
+            <span class="legend-item"><span class="dot installation"></span> Installation</span>
+            <span class="legend-item"><span class="dot service"></span> Service</span>
+            <span class="legend-item"><span class="dot completed"></span> Completed</span>
+          </div>
+        </div>
+
+        <div id="details_body" class="details-body"></div>
       </div>
     </div>
   </div>
 
   <script>
     const API_URL = "http://66.42.117.96:8000";
-    let currentDate = new Date();
-    let selectedEvent = null;
     let eventsCache = [];
+    let currentMonthDate = new Date();
+    let selectedDate = formatDateLocal(new Date());
 
     function goTo(page) {
       window.location.href = page;
     }
 
-    async function fetchEvents() {
-      const response = await fetch(`${API_URL}/events`);
-      eventsCache = await response.json();
+    function formatDateLocal(dateObj) {
+      const y = dateObj.getFullYear();
+      const m = String(dateObj.getMonth() + 1).padStart(2, "0");
+      const d = String(dateObj.getDate()).padStart(2, "0");
+      return `${y}-${m}-${d}`;
     }
 
-    function normalizeStatus(event) {
-      if (event.checked_out) return "Checked Out";
-      if (event.checked_in) return "Checked In";
-      return "Not Checked In";
-    }
-
-    function getStatusClass(status) {
-      if (status === "Checked In") return "active";
-      if (status === "Checked Out") return "complete";
-      return "upcoming";
-    }
-
-    function getDisplayTime(event) {
-      if (event.displayTime && String(event.displayTime).trim()) return `${event.displayTime} (Local Time)`;
-      if (event.arrival_type === "window" && event.window_start && event.window_end) {
-        return `${event.window_start} - ${event.window_end} (Local Time)`;
-      }
-      return "No time listed";
-    }
-
-    function monthName(date) {
-      return date.toLocaleString("en-US", { month: "long", year: "numeric" });
+    function formatPrettyDate(dateStr) {
+      if (!dateStr) return "";
+      const dt = new Date(dateStr + "T12:00:00");
+      const weekday = dt.toLocaleDateString("en-US", { weekday: "long" });
+      const month = dt.toLocaleDateString("en-US", { month: "long" });
+      const day = dt.getDate();
+      const suffix = (day >= 11 && day <= 13) ? "th" : ({1: "st", 2: "nd", 3: "rd"}[day % 10] || "th");
+      return `${weekday}, ${month} ${day}${suffix}`;
     }
 
     function escapeHtml(value) {
@@ -536,331 +634,193 @@
         .replace(/>/g, "&gt;");
     }
 
-    function formatDateKey(year, month, day) {
-      return `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+    function getTemplateClass(event) {
+      if (event.checked_out) return "completed";
+      const type = String(event.template_type || "").toLowerCase();
+      if (type === "survey") return "survey";
+      if (type === "installation") return "installation";
+      if (type === "service") return "service";
+      return "survey";
     }
 
-    function changeMonth(amount) {
-      currentDate.setMonth(currentDate.getMonth() + amount);
+    function getStatusMarkup(event) {
+      if (event.checked_out) {
+        return `
+          <span class="status-pill completed">Completed</span>
+          ${event.check_out_time ? `<span class="status-pill completed">Checked out ${escapeHtml(event.check_out_time)}</span>` : ""}
+        `;
+      }
+
+      if (event.checked_in) {
+        return `
+          <span class="status-pill checked-in">Checked In</span>
+          ${event.check_in_time ? `<span class="status-pill checked-in">Checked in ${escapeHtml(event.check_in_time)}</span>` : ""}
+        `;
+      }
+
+      return `<span class="status-pill not-checked">Not Checked In</span>`;
+    }
+
+    async function fetchEvents() {
+      const response = await fetch(`${API_URL}/events`);
+      if (!response.ok) {
+        throw new Error("Unable to load calendar events.");
+      }
+      eventsCache = await response.json();
+    }
+
+    function getEventsForDate(dateStr) {
+      return eventsCache.filter(event => (event.site_date || event.date) === dateStr);
+    }
+
+    function renderCalendar() {
+      const grid = document.getElementById("month_grid");
+      grid.innerHTML = "";
+
+      const year = currentMonthDate.getFullYear();
+      const month = currentMonthDate.getMonth();
+
+      const firstOfMonth = new Date(year, month, 1);
+      const startDayIndex = firstOfMonth.getDay();
+      const daysInMonth = new Date(year, month + 1, 0).getDate();
+      const daysInPrevMonth = new Date(year, month, 0).getDate();
+
+      document.getElementById("month_label").textContent =
+        currentMonthDate.toLocaleDateString("en-US", { month: "long", year: "numeric" });
+
+      const todayStr = formatDateLocal(new Date());
+      document.getElementById("today_chip").textContent = `Today · ${formatPrettyDate(todayStr)}`;
+
+      const totalCells = 42;
+
+      for (let i = 0; i < totalCells; i++) {
+        let cellDate;
+        let dayNumber;
+        let otherMonth = false;
+
+        if (i < startDayIndex) {
+          dayNumber = daysInPrevMonth - startDayIndex + i + 1;
+          cellDate = new Date(year, month - 1, dayNumber);
+          otherMonth = true;
+        } else if (i >= startDayIndex + daysInMonth) {
+          dayNumber = i - (startDayIndex + daysInMonth) + 1;
+          cellDate = new Date(year, month + 1, dayNumber);
+          otherMonth = true;
+        } else {
+          dayNumber = i - startDayIndex + 1;
+          cellDate = new Date(year, month, dayNumber);
+        }
+
+        const dateStr = formatDateLocal(cellDate);
+        const events = getEventsForDate(dateStr);
+        const isToday = dateStr === todayStr;
+        const isSelected = dateStr === selectedDate;
+
+        const cell = document.createElement("div");
+        cell.className = `day-cell${otherMonth ? " other-month" : ""}${isToday ? " today" : ""}${isSelected ? " selected" : ""}`;
+        cell.onclick = () => {
+          selectedDate = dateStr;
+          renderCalendar();
+          renderSelectedDay();
+        };
+
+        const visibleEvents = events.slice(0, 3);
+        const extraCount = Math.max(0, events.length - visibleEvents.length);
+
+        cell.innerHTML = `
+          <div class="day-top">
+            <span class="day-number">${dayNumber}</span>
+          </div>
+          <div class="event-stack">
+            ${visibleEvents.map(event => `
+              <div class="event-pill ${getTemplateClass(event)}">
+                ${escapeHtml(event.client || event.site || event.template_type || "Event")}
+              </div>
+            `).join("")}
+            ${extraCount > 0 ? `<div class="more-text">+${extraCount} more</div>` : ""}
+          </div>
+        `;
+
+        grid.appendChild(cell);
+      }
+    }
+
+    function renderSelectedDay() {
+      const body = document.getElementById("details_body");
+      const title = document.getElementById("selected_day_title");
+      const subtitle = document.getElementById("selected_day_subtitle");
+
+      const events = getEventsForDate(selectedDate);
+
+      title.textContent = formatPrettyDate(selectedDate);
+      subtitle.textContent = `${events.length} event${events.length === 1 ? "" : "s"} scheduled`;
+
+      if (!events.length) {
+        body.innerHTML = `
+          <div class="empty-state">
+            No events scheduled for this day.
+          </div>
+        `;
+        return;
+      }
+
+      body.innerHTML = events
+        .sort((a, b) => {
+          const at = (a.time || a.window_start || "").toUpperCase();
+          const bt = (b.time || b.window_start || "").toUpperCase();
+          return at.localeCompare(bt);
+        })
+        .map(event => {
+          const timeText =
+            event.displayTime ||
+            event.time ||
+            `${event.window_start || ""}${event.window_start && event.window_end ? " - " : ""}${event.window_end || ""}` ||
+            "No time listed";
+
+          const proposalText = event.project_type === "both"
+            ? `IP: ${escapeHtml(event.ip_camera_proposal || "None")} | AC: ${escapeHtml(event.access_control_proposal || "None")}`
+            : escapeHtml(event.proposal || "None");
+
+          return `
+            <div class="event-card">
+              <h3>${escapeHtml(event.client || "No client")} — ${escapeHtml(event.site || "No site")}</h3>
+              <div class="event-meta"><strong>Type:</strong> ${escapeHtml(event.template_type || "No type")}</div>
+              <div class="event-meta"><strong>Scope:</strong> ${escapeHtml(event.project_type || "No scope")}</div>
+              <div class="event-meta"><strong>Time:</strong> ${escapeHtml(timeText)}</div>
+              <div class="event-meta"><strong>Technician:</strong> ${escapeHtml(event.technician || "Not assigned")}</div>
+              <div class="event-meta"><strong>Site Contact:</strong> ${escapeHtml(event.contact_name || "None")}</div>
+              <div class="event-meta"><strong>Address:</strong> ${escapeHtml(event.address || "No address")}</div>
+              <div class="event-meta"><strong>Proposal:</strong> ${proposalText}</div>
+              <div class="status-row">
+                ${getStatusMarkup(event)}
+              </div>
+            </div>
+          `;
+        })
+        .join("");
+    }
+
+    function changeMonth(offset) {
+      currentMonthDate = new Date(
+        currentMonthDate.getFullYear(),
+        currentMonthDate.getMonth() + offset,
+        1
+      );
       renderCalendar();
     }
 
     function goToToday() {
-      currentDate = new Date();
+      const today = new Date();
+      currentMonthDate = new Date(today.getFullYear(), today.getMonth(), 1);
+      selectedDate = formatDateLocal(today);
       renderCalendar();
-    }
-
-    function renderCalendar() {
-      const grid = document.getElementById("calendar_grid");
-      grid.innerHTML = "";
-      document.getElementById("month_title").innerText = monthName(currentDate);
-
-      const year = currentDate.getFullYear();
-      const month = currentDate.getMonth();
-
-      const firstDay = new Date(year, month, 1);
-      const startDay = firstDay.getDay();
-      const daysInMonth = new Date(year, month + 1, 0).getDate();
-      const prevMonthDays = new Date(year, month, 0).getDate();
-
-      for (let i = 0; i < 42; i++) {
-        const dayBox = document.createElement("div");
-        dayBox.className = "day";
-
-        let dayNum;
-        let displayMonth = month;
-        let displayYear = year;
-        let otherMonth = false;
-
-        if (i < startDay) {
-          dayNum = prevMonthDays - startDay + i + 1;
-          displayMonth = month - 1;
-          if (displayMonth < 0) {
-            displayMonth = 11;
-            displayYear--;
-          }
-          otherMonth = true;
-        } else if (i >= startDay + daysInMonth) {
-          dayNum = i - (startDay + daysInMonth) + 1;
-          displayMonth = month + 1;
-          if (displayMonth > 11) {
-            displayMonth = 0;
-            displayYear++;
-          }
-          otherMonth = true;
-        } else {
-          dayNum = i - startDay + 1;
-        }
-
-        if (otherMonth) {
-          dayBox.classList.add("other-month");
-        }
-
-        const number = document.createElement("div");
-        number.className = "day-number";
-        number.innerText = dayNum;
-        dayBox.appendChild(number);
-
-        const dateKey = formatDateKey(displayYear, displayMonth, dayNum);
-        const dayEvents = eventsCache.filter(event => event.date === dateKey);
-
-        dayEvents.forEach(event => {
-          const status = normalizeStatus(event);
-          const statusClass = getStatusClass(status);
-
-          const eventDiv = document.createElement("div");
-          eventDiv.className = `event-card ${statusClass}`;
-          eventDiv.innerHTML = `
-            <div class="event-title">${escapeHtml(event.client || event.site || "Appointment")}</div>
-            <div class="event-time">${escapeHtml(getDisplayTime(event))}</div>
-            <div class="event-status ${statusClass}">${escapeHtml(status)}</div>
-          `;
-          eventDiv.onclick = () => openDetails(event);
-          dayBox.appendChild(eventDiv);
-        });
-
-        grid.appendChild(dayBox);
-      }
-    }
-
-    function openDetails(event) {
-      selectedEvent = event;
-      const status = normalizeStatus(event);
-      const statusClass = getStatusClass(status);
-
-      document.getElementById("details_view").innerHTML = `
-        <div class="status-pill ${statusClass}">${escapeHtml(status)}</div>
-
-        <div class="detail-grid">
-          <div class="field">
-            <label>Client</label>
-            <input id="edit_client" value="${escapeHtml(event.client || "")}">
-          </div>
-
-          <div class="field">
-            <label>Site</label>
-            <input id="edit_site" value="${escapeHtml(event.site || "")}">
-          </div>
-
-          <div class="field">
-            <label>Your Calendar Date</label>
-            <input id="edit_date" type="date" value="${escapeHtml(event.date || "")}">
-          </div>
-
-          <div class="field">
-            <label>Original Site Date</label>
-            <input id="edit_site_date" type="date" value="${escapeHtml(event.site_date || "")}">
-          </div>
-
-          <div class="field">
-            <label>Arrival Type</label>
-            <select id="edit_arrival_type" onchange="toggleArrivalFields()">
-              <option value="exact" ${event.arrival_type === "exact" ? "selected" : ""}>Exact Time</option>
-              <option value="window" ${event.arrival_type === "window" ? "selected" : ""}>Arrival Window</option>
-            </select>
-          </div>
-
-          <div class="field">
-            <label>Status</label>
-            <select id="edit_status">
-              <option value="Not Checked In" ${status === "Not Checked In" ? "selected" : ""}>Not Checked In</option>
-              <option value="Checked In" ${status === "Checked In" ? "selected" : ""}>Checked In</option>
-              <option value="Checked Out" ${status === "Checked Out" ? "selected" : ""}>Checked Out</option>
-            </select>
-          </div>
-
-          <div class="field" id="edit_time_wrap">
-            <label>Your Time</label>
-            <input id="edit_time" value="${escapeHtml(event.time || "")}">
-          </div>
-
-          <div class="field" id="edit_window_start_wrap">
-            <label>Your Window Start</label>
-            <input id="edit_window_start" value="${escapeHtml(event.window_start || "")}">
-          </div>
-
-          <div class="field" id="edit_window_end_wrap">
-            <label>Your Window End</label>
-            <input id="edit_window_end" value="${escapeHtml(event.window_end || "")}">
-          </div>
-
-          <div class="field">
-            <label>Technician</label>
-            <input id="edit_technician" value="${escapeHtml(event.technician || "")}">
-          </div>
-
-          <div class="field">
-            <label>Technician Phone</label>
-            <input id="edit_technician_phone" value="${escapeHtml(event.technician_phone || "")}">
-          </div>
-
-          <div class="field">
-            <label>ClickUp Task ID</label>
-            <input id="edit_task_id" value="${escapeHtml(event.task_id || "")}">
-          </div>
-
-          <div class="field">
-            <label>Project Type</label>
-            <input id="edit_project_type" value="${escapeHtml(event.project_type || "")}">
-          </div>
-
-          <div class="field">
-            <label>Checked In At</label>
-            <input id="edit_check_in_time" value="${escapeHtml(event.check_in_time || "")}">
-          </div>
-
-          <div class="field">
-            <label>Checked Out At</label>
-            <input id="edit_check_out_time" value="${escapeHtml(event.check_out_time || "")}">
-          </div>
-
-          <div class="field">
-            <label>Site Contact Name</label>
-            <input id="edit_contact_name" value="${escapeHtml(event.contact_name || "")}">
-          </div>
-
-          <div class="field">
-            <label>Site Contact Phone</label>
-            <input id="edit_contact_phone" value="${escapeHtml(event.contact_phone || "")}">
-          </div>
-
-          <div class="field full">
-            <label>Site Contact Email</label>
-            <input id="edit_contact_email" value="${escapeHtml(event.contact_email || "")}">
-          </div>
-
-          <div class="field full">
-            <label>Address</label>
-            <input id="edit_address" value="${escapeHtml(event.address || "")}">
-          </div>
-
-          <div class="field full">
-            <label>Proposal #</label>
-            <input id="edit_proposal" value="${escapeHtml(event.proposal || "")}">
-          </div>
-
-          <div class="field full">
-            <label>Template Type</label>
-            <input id="edit_template_type" value="${escapeHtml(event.template_type || "")}">
-          </div>
-
-          <div class="field full">
-            <label>Site Time Reference</label>
-            <input id="edit_site_display_time" value="${escapeHtml(event.site_display_time || "")}">
-          </div>
-
-          <div class="field full">
-            <label>Site Time Zone Reference</label>
-            <input id="edit_site_timezone_label" value="${escapeHtml(event.site_timezone_label || "")}">
-          </div>
-        </div>
-
-        <div class="detail-actions">
-          <button class="save-btn" onclick="saveDetails()">Save Changes</button>
-          <button class="delete-btn" onclick="deleteEvent()">Delete Event</button>
-        </div>
-      `;
-
-      toggleArrivalFields();
-    }
-
-    function toggleArrivalFields() {
-      const type = document.getElementById("edit_arrival_type").value;
-      const timeWrap = document.getElementById("edit_time_wrap");
-      const startWrap = document.getElementById("edit_window_start_wrap");
-      const endWrap = document.getElementById("edit_window_end_wrap");
-
-      if (type === "window") {
-        timeWrap.style.display = "none";
-        startWrap.style.display = "block";
-        endWrap.style.display = "block";
-      } else {
-        timeWrap.style.display = "block";
-        startWrap.style.display = "none";
-        endWrap.style.display = "none";
-      }
-    }
-
-    async function saveDetails() {
-      if (!selectedEvent) return;
-
-      const status = document.getElementById("edit_status").value;
-      const arrivalType = document.getElementById("edit_arrival_type").value;
-      const time = document.getElementById("edit_time").value;
-      const windowStart = document.getElementById("edit_window_start").value;
-      const windowEnd = document.getElementById("edit_window_end").value;
-
-      const payload = {
-        client: document.getElementById("edit_client").value,
-        site: document.getElementById("edit_site").value,
-        date: document.getElementById("edit_date").value,
-        site_date: document.getElementById("edit_site_date").value,
-        arrival_type: arrivalType,
-        time: time,
-        window_start: windowStart,
-        window_end: windowEnd,
-        displayTime: arrivalType === "window" ? `${windowStart} - ${windowEnd}` : time,
-        technician: document.getElementById("edit_technician").value,
-        technician_phone: document.getElementById("edit_technician_phone").value,
-        task_id: document.getElementById("edit_task_id").value,
-        project_type: document.getElementById("edit_project_type").value,
-        check_in_time: document.getElementById("edit_check_in_time").value,
-        check_out_time: document.getElementById("edit_check_out_time").value,
-        contact_name: document.getElementById("edit_contact_name").value,
-        contact_phone: document.getElementById("edit_contact_phone").value,
-        contact_email: document.getElementById("edit_contact_email").value,
-        address: document.getElementById("edit_address").value,
-        proposal: document.getElementById("edit_proposal").value,
-        template_type: document.getElementById("edit_template_type").value,
-        site_display_time: document.getElementById("edit_site_display_time").value,
-        site_timezone: selectedEvent.site_timezone || "",
-        site_timezone_label: document.getElementById("edit_site_timezone_label").value,
-        checked_in: status === "Checked In" || status === "Checked Out",
-        checked_out: status === "Checked Out"
-      };
-
-      const response = await fetch(`${API_URL}/events/${selectedEvent.id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload)
-      });
-
-      if (!response.ok) {
-        alert("Unable to update calendar event.");
-        return;
-      }
-
-      await fetchEvents();
-      renderCalendar();
-      const fresh = eventsCache.find(e => e.id === selectedEvent.id);
-      if (fresh) {
-        openDetails(fresh);
-      }
-      alert("Calendar event updated.");
-    }
-
-    async function deleteEvent() {
-      if (!selectedEvent) return;
-
-      const response = await fetch(`${API_URL}/events/${selectedEvent.id}`, {
-        method: "DELETE"
-      });
-
-      if (!response.ok) {
-        alert("Unable to delete calendar event.");
-        return;
-      }
-
-      selectedEvent = null;
-      await fetchEvents();
-      renderCalendar();
-      document.getElementById("details_view").innerHTML = `Click any calendar event to view and edit its full details.`;
-      alert("Calendar event deleted.");
+      renderSelectedDay();
     }
 
     async function initPage() {
       await fetchEvents();
       renderCalendar();
+      renderSelectedDay();
     }
 
     initPage();
