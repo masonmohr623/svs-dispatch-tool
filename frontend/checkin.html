@@ -284,11 +284,6 @@
       transition: 0.18s ease;
     }
 
-    .btn.primary {
-      background: linear-gradient(135deg, var(--svs-dark), var(--svs-blue));
-      color: white;
-    }
-
     .btn.success {
       background: linear-gradient(135deg, #2f7a4f, #3d9160);
       color: white;
@@ -357,7 +352,7 @@
     </div>
 
     <div class="help-box">
-      Dragging a card between columns only updates your board status and does not send anything to ClickUp. Use the Send Check-In and Send Check-Out buttons when you want the bot to post to ClickUp. Reset Status resets the board and also attempts to remove bot-made ClickUp comments through the backend.
+      Dragging a card only updates the board and does not send anything to ClickUp. Send Check-In and Send Check-Out will post to ClickUp and automatically move the card. Reset Status resets the card and calls the backend reset route.
     </div>
 
     <div class="board">
@@ -615,16 +610,12 @@
         } else if (targetColumn === "checked_in") {
           updates = {
             checked_in: true,
-            checked_out: false,
-            check_in_time: item.check_in_time || "",
-            check_out_time: ""
+            checked_out: false
           };
         } else if (targetColumn === "completed") {
           updates = {
             checked_in: true,
-            checked_out: true,
-            check_in_time: item.check_in_time || "",
-            check_out_time: item.check_out_time || ""
+            checked_out: true
           };
         }
 
@@ -680,6 +671,14 @@
           throw new Error(data.response_text || data.detail || "Check-in failed");
         }
 
+        const refreshedEvent = eventsCache.find(e => e.id === eventId) || event;
+
+        await updateEventStatus(refreshedEvent, {
+          checked_in: true,
+          checked_out: false,
+          check_in_time: time
+        });
+
         await fetchEvents();
         renderBoard();
 
@@ -732,6 +731,14 @@
         if (!response.ok || data.status === "error") {
           throw new Error(data.response_text || data.detail || "Check-out failed");
         }
+
+        const refreshedEvent = eventsCache.find(e => e.id === eventId) || event;
+
+        await updateEventStatus(refreshedEvent, {
+          checked_in: true,
+          checked_out: true,
+          check_out_time: time
+        });
 
         await fetchEvents();
         renderBoard();
