@@ -1,13 +1,15 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
-from typing import Optional, List
-from datetime import datetime
+from typing import Optional, List, Tuple
+from datetime import datetime, timedelta
 import sqlite3
 import requests
 import os
+import uuid
+import re
 
 app = FastAPI(title="SVS Dispatch Backend")
 
@@ -34,6 +36,9 @@ if os.path.isdir(FRONTEND_DIR):
     app.mount("/static", StaticFiles(directory=FRONTEND_DIR), name="static")
 
 
+# -----------------------------
+# DATABASE
+# -----------------------------
 def get_conn():
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
@@ -108,6 +113,9 @@ def init_db():
 init_db()
 
 
+# -----------------------------
+# MODELS
+# -----------------------------
 class TechnicianIn(BaseModel):
     name: str
     phone: str
@@ -202,6 +210,9 @@ class ResetBotCommentsPayload(BaseModel):
     event_id: int
 
 
+# -----------------------------
+# HELPERS
+# -----------------------------
 def row_to_dict(row):
     return dict(row)
 
@@ -408,9 +419,8 @@ def extract_comment_id(response):
             return str(data.get("comment_id"))
         if data.get("id"):
             return str(data.get("id"))
-        if isinstance(data.get("comment"), dict):
-            if data["comment"].get("id"):
-                return str(data["comment"].get("id"))
+        if isinstance(data.get("comment"), dict) and data["comment"].get("id"):
+            return str(data["comment"].get("id"))
     return ""
 
 
@@ -434,11 +444,146 @@ def delete_clickup_comment(task_id: str, comment_id: str):
     return requests.post(CLICKUP_DELETE_WEBHOOK_URL, json=payload, timeout=20)
 
 
+# -----------------------------
+# ICS HELPERS
+# -----------------------------
+def ics_escape(value: str) -> str:
+    value = str(value or "")
+    value = value.replace("\\", "\\\\")
+    value = value.replace(";", r"\;")
+    value = value.replace(",", r"\,")
+    value = value.replace("\n", r"\n")
+    return value
+
+
+def parse_time_12h(time_str: str) -> Optional[Tuple[int, int]]:
+    if not time_str:
+        return None
+    match = re.match(r"^\s*(\d{1,2}):(\d{2})\s*(AM|PM)\s*$", time_str, flags=re.I)
+    if not match:
+        return None
+
+    hour = int(match.group(1))
+    minute = int(match.group(2))
+    meridiem = match.group(3).upper()
+
+    if meridiem == "AM" and hour == 12:
+        hour = 0
+    elif meridiem == "PM" and hour != 12:
+        hour += 12
+
+    return hour, minute
+
+
+def build_event_datetime(date_str: str, time_str: str) -> Optional[datetime]:
+    parsed = parse_time_12h(time_str)
+    if not date_str or not parsed:
+        return None
+    year, month, day = [int(x) for x in date_str.split("-")]
+    return datetime(year, month, day, parsed[0], parsed[1])
+
+
+def event_start_end_for_ics(event: dict) -> Tuple[Optional[datetime], Optional[datetime]]:
+    date_str = event.get("site_date") or event.get("date") or ""
+    arrival_type = (event.get("arrival_type") or "exact").lower()
+
+    if arrival_type == "window":
+      start_dt = build_event_datetime(date_str, event.get("window_start") or "")
+      end_dt = build_event_datetime(date_str, event.get("window_end") or "")
+      if start_dt and end_dt and end_dt > start_dt:
+          return start_dt, end_dt
+      if start_dt:
+          return start_dt, start_dt + timedelta(hours=1)
+      return None, None
+
+    start_dt = build_event_datetime(date_str, event.get("time") or "")
+    if start_dt:
+        return start_dt, start_dt + timedelta(hours=1)
+
+    return None, None
+
+
+def build_ics_text(events: List[dict], host: str) -> str:
+    now_utc = datetime.utcnow().strftime("%Y%m%dT%H%M%SZ")
+    lines = [
+        "BEGIN:VCALENDAR",
+        "VERSION:2.0",
+        "PRODID:-//SVS Dispatch//Calendar Feed//EN",
+        "CALSCALE:GREGORIAN",
+        "METHOD:PUBLISH",
+        "X-WR-CALNAME:SVS Dispatch Calendar",
+        "X-WR-CALDESC:Secure Vision Solutions Dispatch Calendar",
+    ]
+
+    for event in events:
+        start_dt, end_dt = event_start_end_for_ics(event)
+        if not start_dt or not end_dt:
+            continue
+
+        uid = f"svs-event-{event.get('id', uuid.uuid4())}@{host}"
+        summary_parts = [event.get("client") or "SVS Job"]
+        if event.get("site"):
+            summary_parts.append(event.get("site"))
+        summary = " - ".join(summary_parts)
+
+        description_lines = [
+            f"Template Type: {event.get('template_type') or ''}",
+            f"Project Type: {event.get('project_type') or ''}",
+            f"Technician: {event.get('technician') or ''}",
+            f"Technician Phone: {event.get('technician_phone') or ''}",
+            f"Site Contact: {event.get('contact_name') or ''}",
+            f"Site Contact Phone: {event.get('contact_phone') or ''}",
+            f"Site Contact Email: {event.get('contact_email') or ''}",
+            f"Display Time: {event.get('displayTime') or event.get('site_display_time') or ''}",
+        ]
+
+        if event.get("project_type") == "both":
+            description_lines.append(f"IP Camera Proposal: {event.get('ip_camera_proposal') or ''}")
+            description_lines.append(f"Access Control Proposal: {event.get('access_control_proposal') or ''}")
+        else:
+            description_lines.append(f"Proposal: {event.get('proposal') or ''}")
+
+        if event.get("task_id"):
+            description_lines.append(f"ClickUp ID: {event.get('task_id')}")
+        if event.get("ip_camera_clickup_id"):
+            description_lines.append(f"IP Camera ClickUp ID: {event.get('ip_camera_clickup_id')}")
+        if event.get("access_control_clickup_id"):
+            description_lines.append(f"Access Control ClickUp ID: {event.get('access_control_clickup_id')}")
+
+        description = "\n".join(description_lines)
+
+        lines.extend([
+            "BEGIN:VEVENT",
+            f"UID:{ics_escape(uid)}",
+            f"DTSTAMP:{now_utc}",
+            f"DTSTART:{start_dt.strftime('%Y%m%dT%H%M%S')}",
+            f"DTEND:{end_dt.strftime('%Y%m%dT%H%M%S')}",
+            f"SUMMARY:{ics_escape(summary)}",
+            f"DESCRIPTION:{ics_escape(description)}",
+            f"LOCATION:{ics_escape(event.get('address') or '')}",
+            "BEGIN:VALARM",
+            "ACTION:DISPLAY",
+            "DESCRIPTION:SVS job reminder",
+            "TRIGGER:-PT30M",
+            "END:VALARM",
+            "END:VEVENT",
+        ])
+
+    lines.append("END:VCALENDAR")
+    return "\r\n".join(lines) + "\r\n"
+
+
+# -----------------------------
+# HEALTH / ROOT
+# -----------------------------
 @app.get("/health")
 def health():
     return {"status": "ok"}
 
 
+# -----------------------------
+# TECHNICIANS
+# -----------------------------
 @app.get("/technicians", response_model=List[TechnicianOut])
 def get_technicians():
     conn = get_conn()
@@ -509,6 +654,9 @@ def delete_technician(tech_id: int):
     return {"status": "deleted"}
 
 
+# -----------------------------
+# EVENTS
+# -----------------------------
 @app.get("/events", response_model=List[EventOut])
 def get_events():
     conn = get_conn()
@@ -663,6 +811,9 @@ def delete_event(event_id: int):
     return {"status": "deleted"}
 
 
+# -----------------------------
+# TEMPLATE GENERATION
+# -----------------------------
 @app.options("/generate-dispatch")
 def options_generate_dispatch():
     return {"ok": True}
@@ -702,6 +853,9 @@ def generate_installation(data: GenerateTemplateIn):
     }
 
 
+# -----------------------------
+# CHECK-IN / CHECK-OUT WEBHOOKS
+# -----------------------------
 @app.post("/send-checkin")
 def send_checkin(payload: CheckinPayload):
     conn = get_conn()
@@ -754,26 +908,31 @@ def send_checkin(payload: CheckinPayload):
 
         cur.execute("""
             UPDATE events
-            SET checked_in = 1,
-                checked_out = 0,
+            SET checked_in = ?,
+                checked_out = ?,
                 check_in_time = ?,
+                check_out_time = ?,
                 ip_checkin_comment_id = ?,
                 ac_checkin_comment_id = ?
             WHERE id = ?
         """, (
+            1,
+            0,
             payload.check_in_time or "",
+            "",
             ip_checkin_comment_id,
             ac_checkin_comment_id,
             payload.event_id
         ))
+
         conn.commit()
+        row = cur.execute("SELECT * FROM events WHERE id = ?", (payload.event_id,)).fetchone()
         conn.close()
 
         return {
             "status": "sent",
             "sent_to": sent_to,
-            "ip_checkin_comment_id": ip_checkin_comment_id,
-            "ac_checkin_comment_id": ac_checkin_comment_id
+            "event": normalize_event_row(row)
         }
     except Exception as e:
         conn.close()
@@ -835,26 +994,29 @@ def send_checkout(payload: CheckoutPayload):
 
         cur.execute("""
             UPDATE events
-            SET checked_in = 1,
-                checked_out = 1,
+            SET checked_in = ?,
+                checked_out = ?,
                 check_out_time = ?,
                 ip_checkout_comment_id = ?,
                 ac_checkout_comment_id = ?
             WHERE id = ?
         """, (
+            1,
+            1,
             payload.check_out_time or "",
             ip_checkout_comment_id,
             ac_checkout_comment_id,
             payload.event_id
         ))
+
         conn.commit()
+        row = cur.execute("SELECT * FROM events WHERE id = ?", (payload.event_id,)).fetchone()
         conn.close()
 
         return {
             "status": "sent",
             "sent_to": sent_to,
-            "ip_checkout_comment_id": ip_checkout_comment_id,
-            "ac_checkout_comment_id": ac_checkout_comment_id
+            "event": normalize_event_row(row)
         }
     except Exception as e:
         conn.close()
@@ -952,6 +1114,34 @@ def reset_bot_comments(payload: ResetBotCommentsPayload):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+# -----------------------------
+# CALENDAR SUBSCRIPTION FEED
+# -----------------------------
+@app.get("/calendar.ics")
+def calendar_ics():
+    conn = get_conn()
+    rows = conn.execute(
+        "SELECT * FROM events ORDER BY date, COALESCE(time, ''), COALESCE(window_start, '')"
+    ).fetchall()
+    conn.close()
+
+    events = [normalize_event_row(r) for r in rows]
+    host = os.environ.get("PUBLIC_HOSTNAME", "svs-dispatch.local")
+    ics_text = build_ics_text(events, host)
+
+    return Response(
+        content=ics_text,
+        media_type="text/calendar; charset=utf-8",
+        headers={
+            "Content-Disposition": "inline; filename=svs-calendar.ics",
+            "Cache-Control": "no-store"
+        }
+    )
+
+
+# -----------------------------
+# FRONTEND FILES
+# -----------------------------
 @app.get("/svs-logo.png")
 def serve_logo():
     return FileResponse(os.path.join(FRONTEND_DIR, "svs-logo.png"))
@@ -1005,6 +1195,9 @@ def serve_home():
     return FileResponse(os.path.join(FRONTEND_DIR, "index.html"))
 
 
+# -----------------------------
+# RUN
+# -----------------------------
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("app:app", host="0.0.0.0", port=int(os.environ.get("PORT", 8000)))
