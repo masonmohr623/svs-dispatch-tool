@@ -20,6 +20,8 @@ CLICKUP_WEBHOOK_URL = os.environ.get(
     "https://hook.us1.make.com/tzham3njl79ucri6lmsd9imvecnft9xq"
 )
 
+CLICKUP_DELETE_WEBHOOK_URL = os.environ.get("CLICKUP_DELETE_WEBHOOK_URL", "")
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -94,6 +96,11 @@ def init_db():
     ensure_column(cur, "events", "ip_camera_proposal", "TEXT DEFAULT ''")
     ensure_column(cur, "events", "access_control_proposal", "TEXT DEFAULT ''")
 
+    ensure_column(cur, "events", "ip_checkin_comment_id", "TEXT DEFAULT ''")
+    ensure_column(cur, "events", "ac_checkin_comment_id", "TEXT DEFAULT ''")
+    ensure_column(cur, "events", "ip_checkout_comment_id", "TEXT DEFAULT ''")
+    ensure_column(cur, "events", "ac_checkout_comment_id", "TEXT DEFAULT ''")
+
     conn.commit()
     conn.close()
 
@@ -143,6 +150,10 @@ class EventIn(BaseModel):
     access_control_clickup_id: Optional[str] = ""
     ip_camera_proposal: Optional[str] = ""
     access_control_proposal: Optional[str] = ""
+    ip_checkin_comment_id: Optional[str] = ""
+    ac_checkin_comment_id: Optional[str] = ""
+    ip_checkout_comment_id: Optional[str] = ""
+    ac_checkout_comment_id: Optional[str] = ""
 
 
 class EventOut(EventIn):
@@ -171,7 +182,7 @@ class GenerateTemplateIn(BaseModel):
 
 class CheckinPayload(BaseModel):
     event_id: int
-    task_id: str
+    task_id: str = ""
     client: Optional[str] = ""
     site: Optional[str] = ""
     technician: Optional[str] = ""
@@ -180,11 +191,15 @@ class CheckinPayload(BaseModel):
 
 class CheckoutPayload(BaseModel):
     event_id: int
-    task_id: str
+    task_id: str = ""
     client: Optional[str] = ""
     site: Optional[str] = ""
     technician: Optional[str] = ""
     check_out_time: Optional[str] = ""
+
+
+class ResetBotCommentsPayload(BaseModel):
+    event_id: int
 
 
 def row_to_dict(row):
@@ -382,6 +397,43 @@ If any of the information above needs correction, please email me as soon as pos
 Thank you,"""
 
 
+def extract_comment_id(response):
+    try:
+        data = response.json()
+    except Exception:
+        return ""
+
+    if isinstance(data, dict):
+        if data.get("comment_id"):
+            return str(data.get("comment_id"))
+        if data.get("id"):
+            return str(data.get("id"))
+        if isinstance(data.get("comment"), dict):
+            if data["comment"].get("id"):
+                return str(data["comment"].get("id"))
+    return ""
+
+
+def send_clickup_comment(task_id: str, body: dict):
+    if not task_id:
+        return None, ""
+    payload = dict(body)
+    payload["task_id"] = task_id
+    response = requests.post(CLICKUP_WEBHOOK_URL, json=payload, timeout=20)
+    comment_id = extract_comment_id(response)
+    return response, comment_id
+
+
+def delete_clickup_comment(task_id: str, comment_id: str):
+    if not CLICKUP_DELETE_WEBHOOK_URL or not task_id or not comment_id:
+        return None
+    payload = {
+        "task_id": task_id,
+        "comment_id": comment_id
+    }
+    return requests.post(CLICKUP_DELETE_WEBHOOK_URL, json=payload, timeout=20)
+
+
 @app.get("/health")
 def health():
     return {"status": "ok"}
@@ -481,8 +533,10 @@ def create_event(event: EventIn):
             site_timezone, site_timezone_label, arrival_type,
             checked_in, checked_out, check_in_time, check_out_time,
             ip_camera_clickup_id, access_control_clickup_id,
-            ip_camera_proposal, access_control_proposal
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ip_camera_proposal, access_control_proposal,
+            ip_checkin_comment_id, ac_checkin_comment_id,
+            ip_checkout_comment_id, ac_checkout_comment_id
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     """, (
         event.client,
         event.site,
@@ -514,6 +568,10 @@ def create_event(event: EventIn):
         event.access_control_clickup_id or "",
         event.ip_camera_proposal or "",
         event.access_control_proposal or "",
+        event.ip_checkin_comment_id or "",
+        event.ac_checkin_comment_id or "",
+        event.ip_checkout_comment_id or "",
+        event.ac_checkout_comment_id or "",
     ))
 
     conn.commit()
@@ -541,7 +599,9 @@ def update_event(event_id: int, event: EventIn):
             site_timezone = ?, site_timezone_label = ?, arrival_type = ?,
             checked_in = ?, checked_out = ?, check_in_time = ?, check_out_time = ?,
             ip_camera_clickup_id = ?, access_control_clickup_id = ?,
-            ip_camera_proposal = ?, access_control_proposal = ?
+            ip_camera_proposal = ?, access_control_proposal = ?,
+            ip_checkin_comment_id = ?, ac_checkin_comment_id = ?,
+            ip_checkout_comment_id = ?, ac_checkout_comment_id = ?
         WHERE id = ?
     """, (
         event.client,
@@ -574,6 +634,10 @@ def update_event(event_id: int, event: EventIn):
         event.access_control_clickup_id or "",
         event.ip_camera_proposal or "",
         event.access_control_proposal or "",
+        event.ip_checkin_comment_id or "",
+        event.ac_checkin_comment_id or "",
+        event.ip_checkout_comment_id or "",
+        event.ac_checkout_comment_id or "",
         event_id
     ))
 
@@ -638,14 +702,6 @@ def generate_installation(data: GenerateTemplateIn):
     }
 
 
-def send_clickup_comment(task_id: str, body: dict):
-    if not task_id:
-        return None
-    payload = dict(body)
-    payload["task_id"] = task_id
-    return requests.post(CLICKUP_WEBHOOK_URL, json=payload, timeout=20)
-
-
 @app.post("/send-checkin")
 def send_checkin(payload: CheckinPayload):
     conn = get_conn()
@@ -670,6 +726,10 @@ def send_checkin(payload: CheckinPayload):
 
     try:
         sent_to = []
+
+        ip_checkin_comment_id = event_data.get("ip_checkin_comment_id", "") or ""
+        ac_checkin_comment_id = event_data.get("ac_checkin_comment_id", "") or ""
+
         project_type = (event_data.get("project_type") or "").lower()
 
         if project_type == "both":
@@ -677,28 +737,44 @@ def send_checkin(payload: CheckinPayload):
             ac_id = event_data.get("access_control_clickup_id") or ""
 
             if ip_id:
-                send_clickup_comment(ip_id, body)
+                _, ip_comment_id = send_clickup_comment(ip_id, body)
+                ip_checkin_comment_id = ip_comment_id or ""
                 sent_to.append(f"IP Camera ({ip_id})")
+
             if ac_id:
-                send_clickup_comment(ac_id, body)
+                _, ac_comment_id = send_clickup_comment(ac_id, body)
+                ac_checkin_comment_id = ac_comment_id or ""
                 sent_to.append(f"Access Control ({ac_id})")
         else:
             task_id = payload.task_id or event_data.get("task_id") or ""
             if task_id:
-                send_clickup_comment(task_id, body)
+                _, single_comment_id = send_clickup_comment(task_id, body)
+                ip_checkin_comment_id = single_comment_id or ""
                 sent_to.append(task_id)
 
         cur.execute("""
             UPDATE events
             SET checked_in = 1,
                 checked_out = 0,
-                check_in_time = ?
+                check_in_time = ?,
+                ip_checkin_comment_id = ?,
+                ac_checkin_comment_id = ?
             WHERE id = ?
-        """, (payload.check_in_time or "", payload.event_id))
+        """, (
+            payload.check_in_time or "",
+            ip_checkin_comment_id,
+            ac_checkin_comment_id,
+            payload.event_id
+        ))
         conn.commit()
         conn.close()
 
-        return {"status": "sent", "sent_to": sent_to}
+        return {
+            "status": "sent",
+            "sent_to": sent_to,
+            "ip_checkin_comment_id": ip_checkin_comment_id,
+            "ac_checkin_comment_id": ac_checkin_comment_id
+        }
     except Exception as e:
         conn.close()
         raise HTTPException(status_code=500, detail=str(e))
@@ -731,6 +807,10 @@ def send_checkout(payload: CheckoutPayload):
 
     try:
         sent_to = []
+
+        ip_checkout_comment_id = event_data.get("ip_checkout_comment_id", "") or ""
+        ac_checkout_comment_id = event_data.get("ac_checkout_comment_id", "") or ""
+
         project_type = (event_data.get("project_type") or "").lower()
 
         if project_type == "both":
@@ -738,28 +818,135 @@ def send_checkout(payload: CheckoutPayload):
             ac_id = event_data.get("access_control_clickup_id") or ""
 
             if ip_id:
-                send_clickup_comment(ip_id, body)
+                _, ip_comment_id = send_clickup_comment(ip_id, body)
+                ip_checkout_comment_id = ip_comment_id or ""
                 sent_to.append(f"IP Camera ({ip_id})")
+
             if ac_id:
-                send_clickup_comment(ac_id, body)
+                _, ac_comment_id = send_clickup_comment(ac_id, body)
+                ac_checkout_comment_id = ac_comment_id or ""
                 sent_to.append(f"Access Control ({ac_id})")
         else:
             task_id = payload.task_id or event_data.get("task_id") or ""
             if task_id:
-                send_clickup_comment(task_id, body)
+                _, single_comment_id = send_clickup_comment(task_id, body)
+                ip_checkout_comment_id = single_comment_id or ""
                 sent_to.append(task_id)
 
         cur.execute("""
             UPDATE events
             SET checked_in = 1,
                 checked_out = 1,
-                check_out_time = ?
+                check_out_time = ?,
+                ip_checkout_comment_id = ?,
+                ac_checkout_comment_id = ?
             WHERE id = ?
-        """, (payload.check_out_time or "", payload.event_id))
+        """, (
+            payload.check_out_time or "",
+            ip_checkout_comment_id,
+            ac_checkout_comment_id,
+            payload.event_id
+        ))
         conn.commit()
         conn.close()
 
-        return {"status": "sent", "sent_to": sent_to}
+        return {
+            "status": "sent",
+            "sent_to": sent_to,
+            "ip_checkout_comment_id": ip_checkout_comment_id,
+            "ac_checkout_comment_id": ac_checkout_comment_id
+        }
+    except Exception as e:
+        conn.close()
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/reset-bot-comments")
+def reset_bot_comments(payload: ResetBotCommentsPayload):
+    conn = get_conn()
+    cur = conn.cursor()
+
+    event = cur.execute("SELECT * FROM events WHERE id = ?", (payload.event_id,)).fetchone()
+    if not event:
+        conn.close()
+        raise HTTPException(status_code=404, detail="Event not found")
+
+    event_data = dict(event)
+
+    deleted = []
+    skipped = []
+
+    try:
+        project_type = (event_data.get("project_type") or "").lower()
+
+        if CLICKUP_DELETE_WEBHOOK_URL:
+            if project_type == "both":
+                ip_task_id = event_data.get("ip_camera_clickup_id") or ""
+                ac_task_id = event_data.get("access_control_clickup_id") or ""
+
+                if event_data.get("ip_checkin_comment_id"):
+                    delete_clickup_comment(ip_task_id, event_data.get("ip_checkin_comment_id"))
+                    deleted.append("IP check-in")
+                else:
+                    skipped.append("IP check-in")
+
+                if event_data.get("ac_checkin_comment_id"):
+                    delete_clickup_comment(ac_task_id, event_data.get("ac_checkin_comment_id"))
+                    deleted.append("AC check-in")
+                else:
+                    skipped.append("AC check-in")
+
+                if event_data.get("ip_checkout_comment_id"):
+                    delete_clickup_comment(ip_task_id, event_data.get("ip_checkout_comment_id"))
+                    deleted.append("IP check-out")
+                else:
+                    skipped.append("IP check-out")
+
+                if event_data.get("ac_checkout_comment_id"):
+                    delete_clickup_comment(ac_task_id, event_data.get("ac_checkout_comment_id"))
+                    deleted.append("AC check-out")
+                else:
+                    skipped.append("AC check-out")
+            else:
+                task_id = event_data.get("task_id") or ""
+
+                if event_data.get("ip_checkin_comment_id"):
+                    delete_clickup_comment(task_id, event_data.get("ip_checkin_comment_id"))
+                    deleted.append("check-in")
+                else:
+                    skipped.append("check-in")
+
+                if event_data.get("ip_checkout_comment_id"):
+                    delete_clickup_comment(task_id, event_data.get("ip_checkout_comment_id"))
+                    deleted.append("check-out")
+                else:
+                    skipped.append("check-out")
+        else:
+            skipped.append("delete webhook not configured")
+
+        cur.execute("""
+            UPDATE events
+            SET checked_in = 0,
+                checked_out = 0,
+                check_in_time = '',
+                check_out_time = '',
+                ip_checkin_comment_id = '',
+                ac_checkin_comment_id = '',
+                ip_checkout_comment_id = '',
+                ac_checkout_comment_id = ''
+            WHERE id = ?
+        """, (payload.event_id,))
+        conn.commit()
+
+        row = cur.execute("SELECT * FROM events WHERE id = ?", (payload.event_id,)).fetchone()
+        conn.close()
+
+        return {
+            "status": "reset",
+            "deleted": deleted,
+            "skipped": skipped,
+            "event": normalize_event_row(row)
+        }
     except Exception as e:
         conn.close()
         raise HTTPException(status_code=500, detail=str(e))

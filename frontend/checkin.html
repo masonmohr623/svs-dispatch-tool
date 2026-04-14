@@ -15,7 +15,6 @@
       --muted: #647784;
       --white: #ffffff;
       --shadow: 0 14px 34px rgba(36, 55, 70, 0.12);
-      --shadow-hover: 0 18px 40px rgba(36, 55, 70, 0.18);
       --success: #2f7a4f;
       --warning: #b8871a;
       --danger: #b44545;
@@ -37,7 +36,7 @@
     }
 
     .page {
-      max-width: 1500px;
+      max-width: 1520px;
       margin: 0 auto;
       padding: 26px 20px 44px;
     }
@@ -72,7 +71,6 @@
       border-radius: 18px;
       padding: 8px;
       border: 1px solid var(--svs-border);
-      box-shadow: 0 8px 20px rgba(36, 55, 70, 0.1);
       flex-shrink: 0;
     }
 
@@ -131,6 +129,7 @@
       padding: 12px 14px;
       background: #fff;
       font-size: 14px;
+      color: var(--text);
     }
 
     .toolbar button {
@@ -168,7 +167,13 @@
       border-radius: 24px;
       box-shadow: var(--shadow);
       overflow: hidden;
-      min-height: 560px;
+      min-height: 600px;
+    }
+
+    .column.drag-over {
+      outline: 2px dashed var(--svs-accent);
+      outline-offset: -8px;
+      background: rgba(255,255,255,1);
     }
 
     .column-header {
@@ -203,6 +208,11 @@
       border-radius: 18px;
       padding: 16px;
       box-shadow: 0 6px 16px rgba(36, 55, 70, 0.08);
+      cursor: grab;
+    }
+
+    .card.dragging {
+      opacity: 0.55;
     }
 
     .card h3 {
@@ -347,11 +357,11 @@
     </div>
 
     <div class="help-box">
-      For jobs marked as IP Camera + Access Control, the Check-In and Check-Out buttons send the notification to both ClickUp cards automatically.
+      Dragging a card between columns only updates your board status and does not send anything to ClickUp. Use the Send Check-In and Send Check-Out buttons when you actually want the bot to post to ClickUp. Reset Status will also try to remove bot-made ClickUp comments if those comment IDs were captured by the backend and a delete webhook is configured.
     </div>
 
     <div class="board">
-      <div class="column">
+      <div class="column" data-column="not_checked_in" ondragover="allowDrop(event)" ondrop="handleDrop(event, 'not_checked_in')" ondragenter="handleDragEnter(event)" ondragleave="handleDragLeave(event)">
         <div class="column-header">
           <h2>Not Checked In</h2>
           <p>Jobs scheduled but not yet checked in.</p>
@@ -359,7 +369,7 @@
         <div id="not_checked_in_list" class="column-body"></div>
       </div>
 
-      <div class="column">
+      <div class="column" data-column="checked_in" ondragover="allowDrop(event)" ondrop="handleDrop(event, 'checked_in')" ondragenter="handleDragEnter(event)" ondragleave="handleDragLeave(event)">
         <div class="column-header">
           <h2>Checked In</h2>
           <p>Jobs currently active on-site.</p>
@@ -367,7 +377,7 @@
         <div id="checked_in_list" class="column-body"></div>
       </div>
 
-      <div class="column">
+      <div class="column" data-column="completed" ondragover="allowDrop(event)" ondrop="handleDrop(event, 'completed')" ondragenter="handleDragEnter(event)" ondragleave="handleDragLeave(event)">
         <div class="column-header">
           <h2>Completed</h2>
           <p>Jobs checked out and finished.</p>
@@ -380,6 +390,7 @@
   <script>
     const API_URL = "http://66.42.117.96:8000";
     let eventsCache = [];
+    let draggedEventId = null;
 
     function goTo(page) {
       window.location.href = page;
@@ -480,7 +491,10 @@
           : "Checked out: Not sent";
 
         return `
-          <div class="card">
+          <div class="card"
+               draggable="true"
+               ondragstart="handleDragStart(event, ${event.id})"
+               ondragend="handleDragEnd(event)">
             <h3>${escapeHtml(event.client || "No client listed")}</h3>
             <div class="line"><strong>Site:</strong> ${escapeHtml(event.site || "No site listed")}</div>
             <div class="line"><strong>Type:</strong> ${escapeHtml(event.template_type || "No type")}</div>
@@ -508,7 +522,7 @@
               ${event.checked_in && !event.checked_out
                 ? `<button class="btn warning" onclick="sendCheckOut(${event.id})">Send Check-Out</button>`
                 : ``}
-              <button class="btn secondary" onclick="moveBackToNotCheckedIn(${event.id})">Reset Status</button>
+              <button class="btn secondary" onclick="resetStatus(${event.id})">Reset Status</button>
             </div>
           </div>
         `;
@@ -541,6 +555,86 @@
       }
 
       return data;
+    }
+
+    function allowDrop(event) {
+      event.preventDefault();
+    }
+
+    function handleDragStart(event, eventId) {
+      draggedEventId = eventId;
+      event.dataTransfer.setData("text/plain", String(eventId));
+      event.currentTarget.classList.add("dragging");
+    }
+
+    function handleDragEnd(event) {
+      event.currentTarget.classList.remove("dragging");
+      document.querySelectorAll(".column").forEach(col => col.classList.remove("drag-over"));
+    }
+
+    function handleDragEnter(event) {
+      const column = event.currentTarget.closest(".column");
+      if (column) {
+        column.classList.add("drag-over");
+      }
+    }
+
+    function handleDragLeave(event) {
+      const column = event.currentTarget.closest(".column");
+      if (!column) return;
+
+      const related = event.relatedTarget;
+      if (!related || !column.contains(related)) {
+        column.classList.remove("drag-over");
+      }
+    }
+
+    async function handleDrop(event, targetColumn) {
+      event.preventDefault();
+      const column = event.currentTarget.closest(".column");
+      if (column) {
+        column.classList.remove("drag-over");
+      }
+
+      const droppedId = Number(event.dataTransfer.getData("text/plain") || draggedEventId);
+      if (!droppedId) return;
+
+      const item = eventsCache.find(e => e.id === droppedId);
+      if (!item) return;
+
+      try {
+        let updates = {};
+
+        if (targetColumn === "not_checked_in") {
+          updates = {
+            checked_in: false,
+            checked_out: false,
+            check_in_time: "",
+            check_out_time: ""
+          };
+        } else if (targetColumn === "checked_in") {
+          updates = {
+            checked_in: true,
+            checked_out: false,
+            check_in_time: item.check_in_time || "",
+            check_out_time: ""
+          };
+        } else if (targetColumn === "completed") {
+          updates = {
+            checked_in: true,
+            checked_out: true,
+            check_in_time: item.check_in_time || "",
+            check_out_time: item.check_out_time || ""
+          };
+        }
+
+        await updateEventStatus(item, updates);
+        await fetchEvents();
+        renderBoard();
+      } catch (error) {
+        console.error(error);
+        alert(`Drag update failed: ${error.message}`);
+      }
     }
 
     async function sendCheckIn(eventId) {
@@ -649,20 +743,33 @@
       }
     }
 
-    async function moveBackToNotCheckedIn(eventId) {
+    async function resetStatus(eventId) {
       try {
-        const event = eventsCache.find(e => e.id === eventId);
-        if (!event) return;
-
-        await updateEventStatus(event, {
-          checked_in: false,
-          checked_out: false,
-          check_in_time: "",
-          check_out_time: ""
+        const response = await fetch(`${API_URL}/reset-bot-comments`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ event_id: eventId })
         });
+
+        const text = await response.text();
+        let data = {};
+
+        try {
+          data = text ? JSON.parse(text) : {};
+        } catch {
+          throw new Error(text || "Invalid backend response.");
+        }
+
+        if (!response.ok) {
+          throw new Error(data.detail || "Reset failed");
+        }
 
         await fetchEvents();
         renderBoard();
+
+        const deleted = (data.deleted || []).length ? `Deleted: ${data.deleted.join(", ")}` : "No bot comments deleted.";
+        const skipped = (data.skipped || []).length ? ` Skipped: ${data.skipped.join(", ")}` : "";
+        alert(`Status reset. ${deleted}${skipped}`);
       } catch (error) {
         console.error(error);
         alert(`Reset failed: ${error.message}`);
