@@ -15,12 +15,9 @@
       --muted: #647784;
       --white: #ffffff;
       --shadow: 0 14px 34px rgba(36, 55, 70, 0.12);
-      --shadow-hover: 0 18px 40px rgba(36, 55, 70, 0.18);
     }
 
-    * {
-      box-sizing: border-box;
-    }
+    * { box-sizing: border-box; }
 
     body {
       margin: 0;
@@ -34,7 +31,7 @@
     }
 
     .page {
-      max-width: 1420px;
+      max-width: 1460px;
       margin: 0 auto;
       padding: 26px 20px 44px;
     }
@@ -69,7 +66,6 @@
       border-radius: 18px;
       padding: 8px;
       border: 1px solid var(--svs-border);
-      box-shadow: 0 8px 20px rgba(36, 55, 70, 0.1);
       flex-shrink: 0;
     }
 
@@ -105,17 +101,11 @@
       font-weight: 700;
       cursor: pointer;
       border: 1px solid var(--svs-border);
-      transition: 0.18s ease;
-    }
-
-    .nav-btn:hover {
-      background: #dfe9ee;
-      transform: translateY(-1px);
     }
 
     .layout {
       display: grid;
-      grid-template-columns: 1.06fr 0.94fr;
+      grid-template-columns: 1.08fr 0.92fr;
       gap: 22px;
     }
 
@@ -142,6 +132,20 @@
       color: var(--svs-dark);
     }
 
+    .subcard {
+      background: #fbfdfe;
+      border: 1px solid var(--svs-border);
+      border-radius: 18px;
+      padding: 18px;
+      margin-top: 14px;
+    }
+
+    .subcard h3 {
+      margin: 0 0 14px;
+      font-size: 18px;
+      color: var(--svs-dark);
+    }
+
     .form-grid {
       display: grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -162,9 +166,7 @@
       letter-spacing: 0.45px;
     }
 
-    input,
-    textarea,
-    select {
+    input, textarea, select {
       width: 100%;
       border: 1px solid var(--svs-border);
       border-radius: 14px;
@@ -211,23 +213,17 @@
       font-size: 14px;
       font-weight: 700;
       cursor: pointer;
-      transition: 0.18s ease;
     }
 
     .action-btn.primary {
       background: linear-gradient(135deg, var(--svs-dark), var(--svs-blue));
       color: white;
-      box-shadow: 0 10px 22px rgba(36, 55, 70, 0.16);
     }
 
     .action-btn.secondary {
       background: var(--svs-soft);
       color: var(--svs-dark);
       border: 1px solid var(--svs-border);
-    }
-
-    .action-btn:hover {
-      transform: translateY(-1px);
     }
 
     .search-results {
@@ -247,48 +243,14 @@
       font-size: 14px;
     }
 
-    .search-item:hover {
-      background: #e7f0f5;
-    }
-
-    .output-note {
-      margin-bottom: 12px;
-      color: var(--muted);
-      font-size: 14px;
-      line-height: 1.6;
-    }
-
-    .hidden {
-      display: none;
-    }
+    .hidden { display: none; }
 
     @media (max-width: 1080px) {
-      .layout {
-        grid-template-columns: 1fr;
-      }
+      .layout { grid-template-columns: 1fr; }
     }
 
     @media (max-width: 760px) {
-      .page {
-        padding: 18px 14px 34px;
-      }
-
-      .topbar {
-        padding: 18px;
-      }
-
-      .brand img {
-        width: 72px;
-        height: 72px;
-      }
-
-      .brand-text h1 {
-        font-size: 24px;
-      }
-
-      .form-grid {
-        grid-template-columns: 1fr;
-      }
+      .form-grid { grid-template-columns: 1fr; }
     }
   </style>
 </head>
@@ -320,73 +282,21 @@
         <div class="section-title">Schedule</div>
         <div class="form-grid">
           <div class="field">
-            <label for="date">Site Date</label>
-            <input type="date" id="date">
-          </div>
-
-          <div class="field">
-            <label for="arrival_type">Arrival Type</label>
-            <select id="arrival_type" onchange="toggleArrivalType()">
-              <option value="exact">Exact Time</option>
-              <option value="window">Arrival Window</option>
-            </select>
-          </div>
-
-          <div class="field">
             <label for="project_type">Project Type</label>
-            <select id="project_type">
+            <select id="project_type" onchange="toggleAllProjectTypeFields()">
               <option value="ip_camera">IP Camera</option>
               <option value="access_control">Access Control</option>
               <option value="both">IP Camera + Access Control</option>
             </select>
           </div>
 
-          <div class="field" id="exact_time_field">
-            <label for="time">Site Local Time</label>
-            <input list="time-options" id="time" placeholder="Example: 12:00 PM">
+          <div class="field">
+            <label for="site_count">Layout</label>
+            <select id="site_count" onchange="toggleSiteCount()">
+              <option value="1">Single Site</option>
+              <option value="2">Multi Site (2)</option>
+            </select>
           </div>
-
-          <div class="field hidden" id="window_start_field">
-            <label for="window_start">Site Local Window Start</label>
-            <input list="time-options" id="window_start" placeholder="Example: 10:00 AM">
-          </div>
-
-          <div class="field hidden" id="window_end_field">
-            <label for="window_end">Site Local Window End</label>
-            <input list="time-options" id="window_end" placeholder="Example: 12:00 PM">
-          </div>
-
-          <div class="field full">
-            <label for="clickup_task_id">ClickUp Task ID</label>
-            <input id="clickup_task_id" placeholder="Example: 86b92e4q4">
-          </div>
-
-          <datalist id="time-options">
-            <option value="12:00 AM"><option value="12:15 AM"><option value="12:30 AM"><option value="12:45 AM">
-            <option value="1:00 AM"><option value="1:15 AM"><option value="1:30 AM"><option value="1:45 AM">
-            <option value="2:00 AM"><option value="2:15 AM"><option value="2:30 AM"><option value="2:45 AM">
-            <option value="3:00 AM"><option value="3:15 AM"><option value="3:30 AM"><option value="3:45 AM">
-            <option value="4:00 AM"><option value="4:15 AM"><option value="4:30 AM"><option value="4:45 AM">
-            <option value="5:00 AM"><option value="5:15 AM"><option value="5:30 AM"><option value="5:45 AM">
-            <option value="6:00 AM"><option value="6:15 AM"><option value="6:30 AM"><option value="6:45 AM">
-            <option value="7:00 AM"><option value="7:15 AM"><option value="7:30 AM"><option value="7:45 AM">
-            <option value="8:00 AM"><option value="8:15 AM"><option value="8:30 AM"><option value="8:45 AM">
-            <option value="9:00 AM"><option value="9:15 AM"><option value="9:30 AM"><option value="9:45 AM">
-            <option value="10:00 AM"><option value="10:15 AM"><option value="10:30 AM"><option value="10:45 AM">
-            <option value="11:00 AM"><option value="11:15 AM"><option value="11:30 AM"><option value="11:45 AM">
-            <option value="12:00 PM"><option value="12:15 PM"><option value="12:30 PM"><option value="12:45 PM">
-            <option value="1:00 PM"><option value="1:15 PM"><option value="1:30 PM"><option value="1:45 PM">
-            <option value="2:00 PM"><option value="2:15 PM"><option value="2:30 PM"><option value="2:45 PM">
-            <option value="3:00 PM"><option value="3:15 PM"><option value="3:30 PM"><option value="3:45 PM">
-            <option value="4:00 PM"><option value="4:15 PM"><option value="4:30 PM"><option value="4:45 PM">
-            <option value="5:00 PM"><option value="5:15 PM"><option value="5:30 PM"><option value="5:45 PM">
-            <option value="6:00 PM"><option value="6:15 PM"><option value="6:30 PM"><option value="6:45 PM">
-            <option value="7:00 PM"><option value="7:15 PM"><option value="7:30 PM"><option value="7:45 PM">
-            <option value="8:00 PM"><option value="8:15 PM"><option value="8:30 PM"><option value="8:45 PM">
-            <option value="9:00 PM"><option value="9:15 PM"><option value="9:30 PM"><option value="9:45 PM">
-            <option value="10:00 PM"><option value="10:15 PM"><option value="10:30 PM"><option value="10:45 PM">
-            <option value="11:00 PM"><option value="11:15 PM"><option value="11:30 PM"><option value="11:45 PM">
-          </datalist>
         </div>
 
         <div class="section-title">Technician Information</div>
@@ -403,44 +313,221 @@
           </div>
         </div>
 
-        <div class="section-title">Site Contact Information</div>
-        <div class="form-grid">
-          <div class="field">
-            <label for="contact_name">Site Contact Name</label>
-            <input id="contact_name">
-          </div>
+        <div class="section-title">Site 1</div>
+        <div class="subcard" id="site1_card">
+          <div class="form-grid">
+            <div class="field">
+              <label for="date_1">Site Date</label>
+              <input type="date" id="date_1">
+            </div>
 
-          <div class="field">
-            <label for="contact_phone">Site Contact Phone</label>
-            <input id="contact_phone">
-          </div>
+            <div class="field">
+              <label for="arrival_type_1">Arrival Type</label>
+              <select id="arrival_type_1" onchange="toggleArrivalType(1)">
+                <option value="exact">Exact Time</option>
+                <option value="window">Arrival Window</option>
+              </select>
+            </div>
 
-          <div class="field full">
-            <label for="contact_email">Site Contact Email</label>
-            <input id="contact_email">
+            <div class="field" id="exact_time_field_1">
+              <label for="time_1">Site Local Time</label>
+              <input list="time-options" id="time_1" placeholder="Example: 12:00 PM">
+            </div>
+
+            <div class="field hidden" id="window_start_field_1">
+              <label for="window_start_1">Window Start</label>
+              <input list="time-options" id="window_start_1" placeholder="Example: 10:00 AM">
+            </div>
+
+            <div class="field hidden" id="window_end_field_1">
+              <label for="window_end_1">Window End</label>
+              <input list="time-options" id="window_end_1" placeholder="Example: 12:00 PM">
+            </div>
+
+            <div class="field">
+              <label for="contact_name_1">Site Contact Name</label>
+              <input id="contact_name_1">
+            </div>
+
+            <div class="field">
+              <label for="contact_phone_1">Site Contact Phone</label>
+              <input id="contact_phone_1">
+            </div>
+
+            <div class="field full">
+              <label for="contact_email_1">Site Contact Email</label>
+              <input id="contact_email_1">
+            </div>
+
+            <div class="field">
+              <label for="client_1">Client</label>
+              <input id="client_1">
+            </div>
+
+            <div class="field">
+              <label for="site_1">Site</label>
+              <input id="site_1">
+            </div>
+
+            <div class="field full">
+              <label for="address_1">Project Address</label>
+              <input id="address_1">
+            </div>
+
+            <div class="field full single-scope-field-1">
+              <label for="clickup_task_id_1">ClickUp ID</label>
+              <input id="clickup_task_id_1">
+            </div>
+
+            <div class="field full single-scope-field-1">
+              <label for="proposal_1">Proposal #</label>
+              <input id="proposal_1">
+            </div>
+
+            <div class="field full both-scope-field-1 hidden">
+              <label for="ip_camera_clickup_id_1">IP Camera ClickUp ID</label>
+              <input id="ip_camera_clickup_id_1">
+            </div>
+
+            <div class="field full both-scope-field-1 hidden">
+              <label for="access_control_clickup_id_1">Access Control ClickUp ID</label>
+              <input id="access_control_clickup_id_1">
+            </div>
+
+            <div class="field full both-scope-field-1 hidden">
+              <label for="ip_camera_proposal_1">IP Camera Proposal #</label>
+              <input id="ip_camera_proposal_1">
+            </div>
+
+            <div class="field full both-scope-field-1 hidden">
+              <label for="access_control_proposal_1">Access Control Proposal #</label>
+              <input id="access_control_proposal_1">
+            </div>
           </div>
         </div>
 
-        <div class="section-title">Project Information</div>
-        <div class="form-grid">
-          <div class="field">
-            <label for="client">Client</label>
-            <input id="client">
-          </div>
+        <div class="section-title hidden" id="site2_title">Site 2</div>
+        <div class="subcard hidden" id="site2_card">
+          <div class="form-grid">
+            <div class="field">
+              <label for="date_2">Site Date</label>
+              <input type="date" id="date_2">
+            </div>
 
-          <div class="field">
-            <label for="site">Site</label>
-            <input id="site">
-          </div>
+            <div class="field">
+              <label for="arrival_type_2">Arrival Type</label>
+              <select id="arrival_type_2" onchange="toggleArrivalType(2)">
+                <option value="exact">Exact Time</option>
+                <option value="window">Arrival Window</option>
+              </select>
+            </div>
 
-          <div class="field full">
-            <label for="address">Project Address</label>
-            <input id="address" placeholder="123 Main St Los Angeles, CA 90001">
+            <div class="field" id="exact_time_field_2">
+              <label for="time_2">Site Local Time</label>
+              <input list="time-options" id="time_2" placeholder="Example: 12:00 PM">
+            </div>
+
+            <div class="field hidden" id="window_start_field_2">
+              <label for="window_start_2">Window Start</label>
+              <input list="time-options" id="window_start_2" placeholder="Example: 10:00 AM">
+            </div>
+
+            <div class="field hidden" id="window_end_field_2">
+              <label for="window_end_2">Window End</label>
+              <input list="time-options" id="window_end_2" placeholder="Example: 12:00 PM">
+            </div>
+
+            <div class="field">
+              <label for="contact_name_2">Site Contact Name</label>
+              <input id="contact_name_2">
+            </div>
+
+            <div class="field">
+              <label for="contact_phone_2">Site Contact Phone</label>
+              <input id="contact_phone_2">
+            </div>
+
+            <div class="field full">
+              <label for="contact_email_2">Site Contact Email</label>
+              <input id="contact_email_2">
+            </div>
+
+            <div class="field">
+              <label for="client_2">Client</label>
+              <input id="client_2">
+            </div>
+
+            <div class="field">
+              <label for="site_2">Site</label>
+              <input id="site_2">
+            </div>
+
+            <div class="field full">
+              <label for="address_2">Project Address</label>
+              <input id="address_2">
+            </div>
+
+            <div class="field full single-scope-field-2">
+              <label for="clickup_task_id_2">ClickUp ID</label>
+              <input id="clickup_task_id_2">
+            </div>
+
+            <div class="field full single-scope-field-2">
+              <label for="proposal_2">Proposal #</label>
+              <input id="proposal_2">
+            </div>
+
+            <div class="field full both-scope-field-2 hidden">
+              <label for="ip_camera_clickup_id_2">IP Camera ClickUp ID</label>
+              <input id="ip_camera_clickup_id_2">
+            </div>
+
+            <div class="field full both-scope-field-2 hidden">
+              <label for="access_control_clickup_id_2">Access Control ClickUp ID</label>
+              <input id="access_control_clickup_id_2">
+            </div>
+
+            <div class="field full both-scope-field-2 hidden">
+              <label for="ip_camera_proposal_2">IP Camera Proposal #</label>
+              <input id="ip_camera_proposal_2">
+            </div>
+
+            <div class="field full both-scope-field-2 hidden">
+              <label for="access_control_proposal_2">Access Control Proposal #</label>
+              <input id="access_control_proposal_2">
+            </div>
           </div>
         </div>
+
+        <datalist id="time-options">
+          <option value="12:00 AM"><option value="12:15 AM"><option value="12:30 AM"><option value="12:45 AM">
+          <option value="1:00 AM"><option value="1:15 AM"><option value="1:30 AM"><option value="1:45 AM">
+          <option value="2:00 AM"><option value="2:15 AM"><option value="2:30 AM"><option value="2:45 AM">
+          <option value="3:00 AM"><option value="3:15 AM"><option value="3:30 AM"><option value="3:45 AM">
+          <option value="4:00 AM"><option value="4:15 AM"><option value="4:30 AM"><option value="4:45 AM">
+          <option value="5:00 AM"><option value="5:15 AM"><option value="5:30 AM"><option value="5:45 AM">
+          <option value="6:00 AM"><option value="6:15 AM"><option value="6:30 AM"><option value="6:45 AM">
+          <option value="7:00 AM"><option value="7:15 AM"><option value="7:30 AM"><option value="7:45 AM">
+          <option value="8:00 AM"><option value="8:15 AM"><option value="8:30 AM"><option value="8:45 AM">
+          <option value="9:00 AM"><option value="9:15 AM"><option value="9:30 AM"><option value="9:45 AM">
+          <option value="10:00 AM"><option value="10:15 AM"><option value="10:30 AM"><option value="10:45 AM">
+          <option value="11:00 AM"><option value="11:15 AM"><option value="11:30 AM"><option value="11:45 AM">
+          <option value="12:00 PM"><option value="12:15 PM"><option value="12:30 PM"><option value="12:45 PM">
+          <option value="1:00 PM"><option value="1:15 PM"><option value="1:30 PM"><option value="1:45 PM">
+          <option value="2:00 PM"><option value="2:15 PM"><option value="2:30 PM"><option value="2:45 PM">
+          <option value="3:00 PM"><option value="3:15 PM"><option value="3:30 PM"><option value="3:45 PM">
+          <option value="4:00 PM"><option value="4:15 PM"><option value="4:30 PM"><option value="4:45 PM">
+          <option value="5:00 PM"><option value="5:15 PM"><option value="5:30 PM"><option value="5:45 PM">
+          <option value="6:00 PM"><option value="6:15 PM"><option value="6:30 PM"><option value="6:45 PM">
+          <option value="7:00 PM"><option value="7:15 PM"><option value="7:30 PM"><option value="7:45 PM">
+          <option value="8:00 PM"><option value="8:15 PM"><option value="8:30 PM"><option value="8:45 PM">
+          <option value="9:00 PM"><option value="9:15 PM"><option value="9:30 PM"><option value="9:45 PM">
+          <option value="10:00 PM"><option value="10:15 PM"><option value="10:30 PM"><option value="10:45 PM">
+          <option value="11:00 PM"><option value="11:15 PM"><option value="11:30 PM"><option value="11:45 PM">
+        </datalist>
 
         <div class="help-box">
-          This page now saves service appointments to the shared backend database, so your whole team sees the same calendar.
+          For Multi Site, this page creates one combined email but saves each site as its own event in the calendar and check-in board.
         </div>
 
         <div class="actions">
@@ -454,7 +541,7 @@
       <div class="panel">
         <h2>Generated Output</h2>
         <div class="output-note">
-          The email uses the site’s local time. The shared calendar saves the converted local time for your team.
+          Multi-site service confirmations generate one clean email with separate Site 1 and Site 2 sections.
         </div>
 
         <label for="subject_output">Subject</label>
@@ -477,13 +564,6 @@
     async function fetchTechnicians() {
       const response = await fetch(`${API_URL}/technicians`);
       technicians = await response.json();
-    }
-
-    function toggleArrivalType() {
-      const type = document.getElementById("arrival_type").value;
-      document.getElementById("exact_time_field").classList.toggle("hidden", type === "window");
-      document.getElementById("window_start_field").classList.toggle("hidden", type !== "window");
-      document.getElementById("window_end_field").classList.toggle("hidden", type !== "window");
     }
 
     function searchTechs() {
@@ -523,318 +603,302 @@
       }
     }
 
-    function parseTime12(timeString) {
-      const match = String(timeString || "").trim().match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
-      if (!match) return null;
-
-      let hours = parseInt(match[1], 10);
-      const minutes = parseInt(match[2], 10);
-      const meridiem = match[3].toUpperCase();
-
-      if (meridiem === "AM" && hours === 12) hours = 0;
-      if (meridiem === "PM" && hours !== 12) hours += 12;
-
-      return { hours, minutes };
+    function toggleArrivalType(siteNumber) {
+      const type = document.getElementById(`arrival_type_${siteNumber}`).value;
+      document.getElementById(`exact_time_field_${siteNumber}`).classList.toggle("hidden", type === "window");
+      document.getElementById(`window_start_field_${siteNumber}`).classList.toggle("hidden", type !== "window");
+      document.getElementById(`window_end_field_${siteNumber}`).classList.toggle("hidden", type !== "window");
     }
 
-    function getAddressState(address) {
-      const upper = String(address || "").toUpperCase().trim();
-      const abbrevMatch = upper.match(/\b(AL|AK|AZ|AR|CA|CO|CT|DE|FL|GA|HI|ID|IL|IN|IA|KS|KY|LA|ME|MD|MA|MI|MN|MS|MO|MT|NE|NV|NH|NJ|NM|NY|NC|ND|OH|OK|OR|PA|RI|SC|SD|TN|TX|UT|VT|VA|WA|WV|WI|WY)\b(?:\s+\d{5}(?:-\d{4})?)?$/);
-      if (abbrevMatch) return abbrevMatch[1];
+    function toggleSiteCount() {
+      const count = document.getElementById("site_count").value;
+      const showSecond = count === "2";
+      document.getElementById("site2_title").classList.toggle("hidden", !showSecond);
+      document.getElementById("site2_card").classList.toggle("hidden", !showSecond);
+    }
 
-      const stateNames = {
-        ALABAMA: "AL", ALASKA: "AK", ARIZONA: "AZ", ARKANSAS: "AR", CALIFORNIA: "CA",
-        COLORADO: "CO", CONNECTICUT: "CT", DELAWARE: "DE", FLORIDA: "FL", GEORGIA: "GA",
-        HAWAII: "HI", IDAHO: "ID", ILLINOIS: "IL", INDIANA: "IN", IOWA: "IA",
-        KANSAS: "KS", KENTUCKY: "KY", LOUISIANA: "LA", MAINE: "ME", MARYLAND: "MD",
-        MASSACHUSETTS: "MA", MICHIGAN: "MI", MINNESOTA: "MN", MISSISSIPPI: "MS",
-        MISSOURI: "MO", MONTANA: "MT", NEBRASKA: "NE", NEVADA: "NV", "NEW HAMPSHIRE": "NH",
-        "NEW JERSEY": "NJ", "NEW MEXICO": "NM", "NEW YORK": "NY", "NORTH CAROLINA": "NC",
-        "NORTH DAKOTA": "ND", OHIO: "OH", OKLAHOMA: "OK", OREGON: "OR", PENNSYLVANIA: "PA",
-        "RHODE ISLAND": "RI", "SOUTH CAROLINA": "SC", "SOUTH DAKOTA": "SD", TENNESSEE: "TN",
-        TEXAS: "TX", UTAH: "UT", VERMONT: "VT", VIRGINIA: "VA", WASHINGTON: "WA",
-        "WEST VIRGINIA": "WV", WISCONSIN: "WI", WYOMING: "WY"
-      };
+    function toggleScopeFieldsForSite(siteNumber, isBoth) {
+      document.querySelectorAll(`.single-scope-field-${siteNumber}`).forEach(el => {
+        el.classList.toggle("hidden", isBoth);
+      });
 
-      for (const [name, abbr] of Object.entries(stateNames)) {
-        if (upper.includes(name)) return abbr;
+      document.querySelectorAll(`.both-scope-field-${siteNumber}`).forEach(el => {
+        el.classList.toggle("hidden", !isBoth);
+      });
+    }
+
+    function toggleAllProjectTypeFields() {
+      const isBoth = document.getElementById("project_type").value === "both";
+      toggleScopeFieldsForSite(1, isBoth);
+      toggleScopeFieldsForSite(2, isBoth);
+    }
+
+    function formatPrettyDate(dateStr) {
+      if (!dateStr) return "";
+      const dt = new Date(dateStr + "T12:00:00");
+      const day = dt.getDate();
+      const suffix = (day >= 11 && day <= 13) ? "th" : ({1:"st",2:"nd",3:"rd"}[day % 10] || "th");
+      return dt.toLocaleDateString("en-US", { weekday: "long", month: "long" }).replace(",", "") + ` ${day}${suffix}`;
+    }
+
+    function getScopeLabel(projectType) {
+      if (projectType === "access_control") return "Service Access Control System";
+      if (projectType === "both") return "Service IP Camera and Access Control System";
+      return "Service IP Camera System";
+    }
+
+    function getSubjectPrefix(projectType, isMulti) {
+      if (projectType === "access_control") {
+        return isMulti
+          ? "SCW Access Control Services Confirmed"
+          : "SCW Access Control Service Confirmed";
       }
-      return null;
-    }
-
-    function inferTimeZoneFromAddress(address) {
-      const state = getAddressState(address);
-      const map = {
-        AL: "America/Chicago", AK: "America/Anchorage", AZ: "America/Phoenix", AR: "America/Chicago",
-        CA: "America/Los_Angeles", CO: "America/Denver", CT: "America/New_York", DE: "America/New_York",
-        FL: "America/New_York", GA: "America/New_York", HI: "Pacific/Honolulu", ID: "America/Denver",
-        IL: "America/Chicago", IN: "America/New_York", IA: "America/Chicago", KS: "America/Chicago",
-        KY: "America/New_York", LA: "America/Chicago", ME: "America/New_York", MD: "America/New_York",
-        MA: "America/New_York", MI: "America/New_York", MN: "America/Chicago", MS: "America/Chicago",
-        MO: "America/Chicago", MT: "America/Denver", NE: "America/Chicago", NV: "America/Los_Angeles",
-        NH: "America/New_York", NJ: "America/New_York", NM: "America/Denver", NY: "America/New_York",
-        NC: "America/New_York", ND: "America/Chicago", OH: "America/New_York", OK: "America/Chicago",
-        OR: "America/Los_Angeles", PA: "America/New_York", RI: "America/New_York", SC: "America/New_York",
-        SD: "America/Chicago", TN: "America/Chicago", TX: "America/Chicago", UT: "America/Denver",
-        VT: "America/New_York", VA: "America/New_York", WA: "America/Los_Angeles", WV: "America/New_York",
-        WI: "America/Chicago", WY: "America/Denver"
-      };
-      return map[state] || Intl.DateTimeFormat().resolvedOptions().timeZone;
-    }
-
-    function getTimeZoneLabel(timeZone) {
-      const labels = {
-        "America/New_York": "ET",
-        "America/Chicago": "CT",
-        "America/Denver": "MT",
-        "America/Los_Angeles": "PT",
-        "America/Phoenix": "MT",
-        "America/Anchorage": "AKT",
-        "Pacific/Honolulu": "HT"
-      };
-      return labels[timeZone] || timeZone;
-    }
-
-    function getZonedParts(date, timeZone) {
-      const parts = new Intl.DateTimeFormat("en-US", {
-        timeZone,
-        year: "numeric",
-        month: "2-digit",
-        day: "2-digit",
-        hour: "2-digit",
-        minute: "2-digit",
-        hour12: false
-      }).formatToParts(date);
-
-      const obj = {};
-      for (const part of parts) {
-        if (part.type !== "literal") obj[part.type] = part.value;
+      if (projectType === "both") {
+        return isMulti
+          ? "SCW IP Camera / Access Control Services Confirmed"
+          : "SCW IP Camera / Access Control Service Confirmed";
       }
+      return isMulti
+        ? "SCW IP Camera Services Confirmed"
+        : "SCW IP Camera Service Confirmed";
+    }
+
+    function buildArrivalText(site) {
+      if (site.arrival_type === "window") {
+        return `${formatPrettyDate(site.date)} with an Arrival Window of ${site.window_start} - ${site.window_end} (Local Time)`;
+      }
+      return `${formatPrettyDate(site.date)} at ${site.time} (Local Time)`;
+    }
+
+    function buildProposalBlock(site, projectType) {
+      if (projectType === "both") {
+        return `IP Camera Proposal #: ${site.ip_camera_proposal}
+Access Control Proposal #: ${site.access_control_proposal}`;
+      }
+      return `Proposal #: ${site.proposal}`;
+    }
+
+    function getSiteData(siteNumber, projectType) {
+      const isBoth = projectType === "both";
 
       return {
-        year: parseInt(obj.year, 10),
-        month: parseInt(obj.month, 10),
-        day: parseInt(obj.day, 10),
-        hour: parseInt(obj.hour, 10),
-        minute: parseInt(obj.minute, 10)
+        date: document.getElementById(`date_${siteNumber}`).value.trim(),
+        arrival_type: document.getElementById(`arrival_type_${siteNumber}`).value,
+        time: document.getElementById(`time_${siteNumber}`).value.trim(),
+        window_start: document.getElementById(`window_start_${siteNumber}`).value.trim(),
+        window_end: document.getElementById(`window_end_${siteNumber}`).value.trim(),
+        contact_name: document.getElementById(`contact_name_${siteNumber}`).value.trim(),
+        contact_phone: document.getElementById(`contact_phone_${siteNumber}`).value.trim(),
+        contact_email: document.getElementById(`contact_email_${siteNumber}`).value.trim(),
+        client: document.getElementById(`client_${siteNumber}`).value.trim(),
+        site: document.getElementById(`site_${siteNumber}`).value.trim(),
+        address: document.getElementById(`address_${siteNumber}`).value.trim(),
+        task_id: isBoth ? "" : document.getElementById(`clickup_task_id_${siteNumber}`).value.trim(),
+        proposal: isBoth ? "" : document.getElementById(`proposal_${siteNumber}`).value.trim(),
+        ip_camera_clickup_id: isBoth ? document.getElementById(`ip_camera_clickup_id_${siteNumber}`).value.trim() : "",
+        access_control_clickup_id: isBoth ? document.getElementById(`access_control_clickup_id_${siteNumber}`).value.trim() : "",
+        ip_camera_proposal: isBoth ? document.getElementById(`ip_camera_proposal_${siteNumber}`).value.trim() : "",
+        access_control_proposal: isBoth ? document.getElementById(`access_control_proposal_${siteNumber}`).value.trim() : ""
       };
     }
 
-    function zonedDateTimeToDate(dateStr, timeStr, timeZone) {
-      const [year, month, day] = dateStr.split("-").map(Number);
-      const parsedTime = parseTime12(timeStr);
-      if (!year || !month || !day || !parsedTime) return null;
-
-      let utcGuess = Date.UTC(year, month - 1, day, parsedTime.hours, parsedTime.minutes);
-
-      for (let i = 0; i < 3; i++) {
-        const zoned = getZonedParts(new Date(utcGuess), timeZone);
-        const desiredUtc = Date.UTC(year, month - 1, day, parsedTime.hours, parsedTime.minutes);
-        const zonedUtc = Date.UTC(zoned.year, zoned.month - 1, zoned.day, zoned.hour, zoned.minute);
-        utcGuess += desiredUtc - zonedUtc;
+    function validateSite(site, projectType, label) {
+      if (!site.date || !site.contact_name || !site.client || !site.site || !site.address) {
+        throw new Error(`${label}: please fill out all required fields.`);
       }
 
-      return new Date(utcGuess);
-    }
+      if (site.arrival_type === "exact" && !site.time) {
+        throw new Error(`${label}: please enter the exact time.`);
+      }
 
-    function formatLocalTime(dateObj) {
-      return dateObj.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
-    }
+      if (site.arrival_type === "window" && (!site.window_start || !site.window_end)) {
+        throw new Error(`${label}: please enter both window times.`);
+      }
 
-    function formatLocalDateInput(dateObj) {
-      const y = dateObj.getFullYear();
-      const m = String(dateObj.getMonth() + 1).padStart(2, "0");
-      const d = String(dateObj.getDate()).padStart(2, "0");
-      return `${y}-${m}-${d}`;
-    }
-
-    function buildConvertedSchedule({ date, arrivalType, time, windowStart, windowEnd, address }) {
-      const siteTimeZone = inferTimeZoneFromAddress(address);
-      const siteTimeZoneLabel = getTimeZoneLabel(siteTimeZone);
-
-      if (arrivalType === "window") {
-        const startDate = zonedDateTimeToDate(date, windowStart, siteTimeZone);
-        const endDate = zonedDateTimeToDate(date, windowEnd, siteTimeZone);
-
-        if (!startDate || !endDate) {
-          return {
-            siteTimeZone,
-            siteTimeZoneLabel,
-            calendarDate: date,
-            displayTime: `${windowStart} - ${windowEnd}`,
-            siteDisplayTime: `${windowStart} - ${windowEnd} (${siteTimeZoneLabel})`
-          };
+      if (projectType === "both") {
+        if (!site.ip_camera_clickup_id || !site.access_control_clickup_id) {
+          throw new Error(`${label}: please enter both ClickUp IDs.`);
         }
-
-        return {
-          siteTimeZone,
-          siteTimeZoneLabel,
-          calendarDate: formatLocalDateInput(startDate),
-          localTime: "",
-          localWindowStart: formatLocalTime(startDate),
-          localWindowEnd: formatLocalTime(endDate),
-          displayTime: `${formatLocalTime(startDate)} - ${formatLocalTime(endDate)}`,
-          siteDisplayTime: `${windowStart} - ${windowEnd} (${siteTimeZoneLabel})`
-        };
+        if (!site.ip_camera_proposal || !site.access_control_proposal) {
+          throw new Error(`${label}: please enter both proposal numbers.`);
+        }
+      } else {
+        if (!site.task_id) {
+          throw new Error(`${label}: please enter the ClickUp ID.`);
+        }
+        if (!site.proposal) {
+          throw new Error(`${label}: please enter the proposal number.`);
+        }
       }
+    }
 
-      const converted = zonedDateTimeToDate(date, time, siteTimeZone);
+    function buildSingleSiteEmail(projectType, techName, techPhone, site) {
+      return `Good afternoon everyone,
 
-      if (!converted) {
-        return {
-          siteTimeZone,
-          siteTimeZoneLabel,
-          calendarDate: date,
-          localTime: time,
-          displayTime: time,
-          siteDisplayTime: `${time} (${siteTimeZoneLabel})`
-        };
-      }
+The technician is confirmed for ${buildArrivalText(site)} for arrival on site.
 
-      return {
-        siteTimeZone,
-        siteTimeZoneLabel,
-        calendarDate: formatLocalDateInput(converted),
-        localTime: formatLocalTime(converted),
-        displayTime: formatLocalTime(converted),
-        siteDisplayTime: `${time} (${siteTimeZoneLabel})`
+Technician information
+${techName}
+Phone: ${techPhone}
+
+Project Scope
+${getScopeLabel(projectType)}
+
+Site Contact Information
+Name: ${site.contact_name}
+Email: ${site.contact_email}
+Phone: ${site.contact_phone}
+
+Client: ${site.client}
+Site: ${site.site}
+Project Address: ${site.address}
+
+${buildProposalBlock(site, projectType)}
+
+If any of the information above needs correction, please email me as soon as possible.
+
+Thank you,`;
+    }
+
+    function buildMultiSiteEmail(projectType, techName, techPhone, site1, site2) {
+      return `Good afternoon everyone,
+
+The technician is confirmed for the following service appointments.
+
+Technician information
+${techName}
+Phone: ${techPhone}
+
+Site 1
+Technician arrival: ${buildArrivalText(site1)}
+
+Project Scope
+${getScopeLabel(projectType)}
+
+Site Contact Information
+Name: ${site1.contact_name}
+Email: ${site1.contact_email}
+Phone: ${site1.contact_phone}
+
+Client: ${site1.client}
+Site: ${site1.site}
+Project Address: ${site1.address}
+
+${buildProposalBlock(site1, projectType)}
+
+Site 2
+Technician arrival: ${buildArrivalText(site2)}
+
+Project Scope
+${getScopeLabel(projectType)}
+
+Site Contact Information
+Name: ${site2.contact_name}
+Email: ${site2.contact_email}
+Phone: ${site2.contact_phone}
+
+Client: ${site2.client}
+Site: ${site2.site}
+Project Address: ${site2.address}
+
+${buildProposalBlock(site2, projectType)}
+
+If any of the information above needs correction, please email me as soon as possible.
+
+Thank you,`;
+    }
+
+    async function saveEventForSite(site, projectType, techName, techPhone) {
+      const displayTime = site.arrival_type === "window"
+        ? `${site.window_start} - ${site.window_end}`
+        : site.time;
+
+      const eventPayload = {
+        client: site.client,
+        site: site.site,
+        address: site.address,
+        technician: techName,
+        technician_phone: techPhone,
+        contact_name: site.contact_name,
+        contact_email: site.contact_email,
+        contact_phone: site.contact_phone,
+        proposal: site.proposal,
+        task_id: site.task_id,
+        template_type: "Service",
+        project_type: projectType,
+        date: site.date,
+        site_date: site.date,
+        time: site.arrival_type === "exact" ? site.time : "",
+        window_start: site.arrival_type === "window" ? site.window_start : "",
+        window_end: site.arrival_type === "window" ? site.window_end : "",
+        displayTime: displayTime,
+        site_display_time: displayTime,
+        site_timezone: "",
+        site_timezone_label: "",
+        arrival_type: site.arrival_type,
+        checked_in: false,
+        checked_out: false,
+        check_in_time: "",
+        check_out_time: "",
+        ip_camera_clickup_id: site.ip_camera_clickup_id,
+        access_control_clickup_id: site.access_control_clickup_id,
+        ip_camera_proposal: site.ip_camera_proposal,
+        access_control_proposal: site.access_control_proposal
       };
+
+      const res = await fetch(`${API_URL}/events`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(eventPayload)
+      });
+
+      if (!res.ok) {
+        throw new Error("One of the site events did not save to the calendar.");
+      }
     }
 
     async function generateService() {
       try {
         await autoSaveTech();
 
-        const arrivalType = document.getElementById("arrival_type").value;
-        const date = document.getElementById("date").value;
-        const time = document.getElementById("time").value.trim();
-        const windowStart = document.getElementById("window_start").value.trim();
-        const windowEnd = document.getElementById("window_end").value.trim();
         const projectType = document.getElementById("project_type").value;
-        const clickupTaskId = document.getElementById("clickup_task_id").value.trim();
+        const isMulti = document.getElementById("site_count").value === "2";
         const techName = document.getElementById("tech_name").value.trim();
         const techPhone = document.getElementById("tech_phone").value.trim();
-        const contactName = document.getElementById("contact_name").value.trim();
-        const contactEmail = document.getElementById("contact_email").value.trim();
-        const contactPhone = document.getElementById("contact_phone").value.trim();
-        const client = document.getElementById("client").value.trim();
-        const site = document.getElementById("site").value.trim();
-        const address = document.getElementById("address").value.trim();
 
-        if (!date || !techName || !techPhone || !contactName || !client || !site || !address) {
-          alert("Please fill out the required fields before generating.");
+        if (!techName || !techPhone) {
+          alert("Please enter the technician name and phone.");
           return;
         }
 
-        if (arrivalType === "exact" && !time) {
-          alert("Please enter an exact time.");
-          return;
+        const site1 = getSiteData(1, projectType);
+        validateSite(site1, projectType, "Site 1");
+
+        let subject = "";
+        let body = "";
+
+        if (isMulti) {
+          const site2 = getSiteData(2, projectType);
+          validateSite(site2, projectType, "Site 2");
+
+          subject = `${getSubjectPrefix(projectType, true)} for ${site1.client}`;
+          body = buildMultiSiteEmail(projectType, techName, techPhone, site1, site2);
+
+          await saveEventForSite(site1, projectType, techName, techPhone);
+          await saveEventForSite(site2, projectType, techName, techPhone);
+        } else {
+          subject = `${getSubjectPrefix(projectType, false)} for ${formatPrettyDate(site1.date)} ${site1.arrival_type === "window" ? `with an Arrival Window of ${site1.window_start} - ${site1.window_end} (Local Time)` : `at ${site1.time} (Local Time)`}`;
+          body = buildSingleSiteEmail(projectType, techName, techPhone, site1);
+
+          await saveEventForSite(site1, projectType, techName, techPhone);
         }
 
-        if (arrivalType === "window" && (!windowStart || !windowEnd)) {
-          alert("Please enter both arrival window times.");
-          return;
-        }
+        document.getElementById("subject_output").value = subject;
+        document.getElementById("body_output").value = body;
 
-        const converted = buildConvertedSchedule({
-          date,
-          arrivalType,
-          time,
-          windowStart,
-          windowEnd,
-          address
-        });
-
-        const generatePayload = {
-          arrival_type: arrivalType,
-          date,
-          time,
-          window_start: windowStart,
-          window_end: windowEnd,
-          project_type: projectType,
-          tech_name: techName,
-          tech_phone: techPhone,
-          contact_name: contactName,
-          contact_email: contactEmail,
-          contact_phone: contactPhone,
-          client,
-          site,
-          address
-        };
-
-        const response = await fetch(`${API_URL}/generate-service`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(generatePayload)
-        });
-
-        const responseText = await response.text();
-        let data = {};
-
-        try {
-          data = responseText ? JSON.parse(responseText) : {};
-        } catch {
-          throw new Error(`Backend returned invalid JSON: ${responseText}`);
-        }
-
-        if (!response.ok) {
-          throw new Error(data.detail || data.message || `Generate failed (${response.status})`);
-        }
-
-        document.getElementById("subject_output").value = data.subject || "";
-        document.getElementById("body_output").value = data.message || "";
-
-        const eventPayload = {
-          client,
-          site,
-          address,
-          technician: techName,
-          technician_phone: techPhone,
-          contact_name: contactName,
-          contact_email: contactEmail,
-          contact_phone: contactPhone,
-          proposal: "",
-          task_id: clickupTaskId,
-          template_type: "Service",
-          project_type: projectType,
-          date: converted.calendarDate,
-          site_date: date,
-          time: converted.localTime || "",
-          window_start: converted.localWindowStart || "",
-          window_end: converted.localWindowEnd || "",
-          displayTime: converted.displayTime || "",
-          site_display_time: converted.siteDisplayTime || "",
-          site_timezone: converted.siteTimeZone || "",
-          site_timezone_label: converted.siteTimeZoneLabel || "",
-          arrival_type: arrivalType,
-          checked_in: false,
-          checked_out: false,
-          check_in_time: "",
-          check_out_time: ""
-        };
-
-        const saveResponse = await fetch(`${API_URL}/events`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(eventPayload)
-        });
-
-        const saveText = await saveResponse.text();
-        let saveData = {};
-
-        try {
-          saveData = saveText ? JSON.parse(saveText) : {};
-        } catch {
-          throw new Error(`Calendar save returned invalid JSON: ${saveText}`);
-        }
-
-        if (!saveResponse.ok) {
-          throw new Error(saveData.detail || saveData.message || `Calendar save failed (${saveResponse.status})`);
-        }
-
-        alert("Service template generated and saved to the shared calendar.");
+        alert("Service template generated and saved.");
       } catch (error) {
-        console.error("generateService error:", error);
+        console.error(error);
         alert(`Service template failed: ${error.message}`);
       }
     }
@@ -861,7 +925,10 @@
 
     async function initPage() {
       await fetchTechnicians();
-      toggleArrivalType();
+      toggleArrivalType(1);
+      toggleArrivalType(2);
+      toggleSiteCount();
+      toggleAllProjectTypeFields();
     }
 
     initPage();
