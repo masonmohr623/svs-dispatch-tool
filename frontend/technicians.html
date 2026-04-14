@@ -15,7 +15,7 @@
       --muted: #647784;
       --white: #ffffff;
       --shadow: 0 14px 34px rgba(36, 55, 70, 0.12);
-      --shadow-hover: 0 18px 40px rgba(36, 55, 70, 0.18);
+      --danger: #b44545;
     }
 
     * {
@@ -34,7 +34,7 @@
     }
 
     .page {
-      max-width: 1420px;
+      max-width: 1450px;
       margin: 0 auto;
       padding: 26px 20px 44px;
     }
@@ -69,7 +69,6 @@
       border-radius: 18px;
       padding: 8px;
       border: 1px solid var(--svs-border);
-      box-shadow: 0 8px 20px rgba(36, 55, 70, 0.1);
       flex-shrink: 0;
     }
 
@@ -113,36 +112,10 @@
       transform: translateY(-1px);
     }
 
-    .hero {
-      position: relative;
-      overflow: hidden;
-      border-radius: 30px;
-      background: linear-gradient(135deg, var(--svs-dark) 0%, var(--svs-blue) 58%, var(--svs-accent) 100%);
-      color: white;
-      padding: 34px 32px;
-      box-shadow: var(--shadow);
-      margin-bottom: 24px;
-    }
-
-    .hero h2 {
-      margin: 0 0 10px;
-      font-size: 34px;
-      line-height: 1.1;
-    }
-
-    .hero p {
-      margin: 0;
-      color: #e5edf2;
-      line-height: 1.7;
-      font-size: 15px;
-      max-width: 760px;
-    }
-
     .layout {
       display: grid;
       grid-template-columns: 420px 1fr;
       gap: 22px;
-      align-items: start;
     }
 
     .panel {
@@ -151,12 +124,24 @@
       border-radius: 24px;
       padding: 24px;
       box-shadow: var(--shadow);
+      min-width: 0;
     }
 
-    .panel h3 {
+    .panel h2 {
       margin: 0 0 18px;
       font-size: 26px;
       color: var(--svs-dark);
+    }
+
+    .panel p {
+      color: var(--muted);
+      line-height: 1.6;
+      margin-top: 0;
+    }
+
+    .form-grid {
+      display: grid;
+      gap: 16px;
     }
 
     label {
@@ -178,118 +163,126 @@
       color: var(--text);
       background: #fbfdfe;
       outline: none;
-      margin-bottom: 16px;
     }
 
-    .action-btn {
-      width: 100%;
+    .actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 6px;
+    }
+
+    .btn {
       border: none;
       border-radius: 14px;
-      padding: 14px 18px;
+      padding: 13px 18px;
       font-size: 14px;
       font-weight: 700;
       cursor: pointer;
+    }
+
+    .btn.primary {
       background: linear-gradient(135deg, var(--svs-dark), var(--svs-blue));
       color: white;
-      box-shadow: 0 10px 22px rgba(36, 55, 70, 0.16);
-      transition: 0.18s ease;
     }
 
-    .action-btn:hover {
-      transform: translateY(-1px);
+    .btn.secondary {
+      background: var(--svs-soft);
+      color: var(--svs-dark);
+      border: 1px solid var(--svs-border);
     }
 
-    .search-wrap {
-      margin-bottom: 18px;
+    .btn.danger {
+      background: linear-gradient(135deg, #933838, var(--danger));
+      color: white;
     }
 
-    .tech-list {
-      display: grid;
-      gap: 14px;
-      max-height: 720px;
-      overflow-y: auto;
-      padding-right: 4px;
+    .toolbar {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
     }
 
-    .tech-card {
+    .toolbar input {
+      max-width: 320px;
+    }
+
+    .table-wrap {
+      overflow: auto;
       border: 1px solid var(--svs-border);
       border-radius: 18px;
       background: #fbfdfe;
-      padding: 18px;
-      transition: 0.18s ease;
     }
 
-    .tech-card:hover {
-      transform: translateY(-2px);
-      box-shadow: var(--shadow-hover);
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 700px;
     }
 
-    .tech-name {
-      margin: 0 0 8px;
-      font-size: 19px;
-      font-weight: 700;
+    th, td {
+      padding: 14px 16px;
+      text-align: left;
+      border-bottom: 1px solid var(--svs-border);
+      font-size: 14px;
+      vertical-align: middle;
+    }
+
+    th {
+      background: #f3f8fb;
       color: var(--svs-dark);
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.45px;
     }
 
-    .tech-phone {
-      color: var(--muted);
-      font-size: 15px;
-      line-height: 1.5;
+    tr:last-child td {
+      border-bottom: none;
+    }
+
+    .row-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .mini-btn {
+      border: none;
+      border-radius: 10px;
+      padding: 8px 10px;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .mini-btn.edit {
+      background: var(--svs-soft);
+      color: var(--svs-dark);
+      border: 1px solid var(--svs-border);
+    }
+
+    .mini-btn.delete {
+      background: #fff1f1;
+      color: var(--danger);
+      border: 1px solid #efcaca;
     }
 
     .empty-state {
+      padding: 18px;
       color: var(--muted);
-      font-size: 14px;
-      line-height: 1.6;
-      padding: 14px 0;
     }
 
     .status {
-      margin-top: 14px;
-      padding: 12px 14px;
-      border-radius: 14px;
-      background: #edf3f6;
-      border: 1px solid var(--svs-border);
-      color: var(--svs-dark);
+      margin-top: 12px;
       font-size: 14px;
-      line-height: 1.5;
-      display: none;
+      color: var(--muted);
+      min-height: 20px;
     }
 
-    .status.show {
-      display: block;
-    }
-
-    @media (max-width: 1080px) {
+    @media (max-width: 1100px) {
       .layout {
         grid-template-columns: 1fr;
-      }
-    }
-
-    @media (max-width: 760px) {
-      .page {
-        padding: 18px 14px 34px;
-      }
-
-      .topbar {
-        padding: 18px;
-      }
-
-      .brand img {
-        width: 72px;
-        height: 72px;
-      }
-
-      .brand-text h1 {
-        font-size: 24px;
-      }
-
-      .hero {
-        padding: 28px 22px;
-      }
-
-      .hero h2 {
-        font-size: 28px;
       }
     }
   </style>
@@ -298,7 +291,7 @@
   <div class="page">
     <div class="topbar">
       <div class="brand">
-        <img src="./svs-logo.PNG" alt="SVS Logo">
+        <img src="./svs-logo.png" alt="SVS Logo">
         <div class="brand-text">
           <h1>Technician Contacts</h1>
           <p>Secure Vision Solutions</p>
@@ -315,37 +308,50 @@
       </div>
     </div>
 
-    <div class="hero">
-      <h2>Shared technician contact list</h2>
-      <p>
-        This page saves technician contacts to your running backend so everyone on the network can use the same list.
-      </p>
-    </div>
-
     <div class="layout">
       <div class="panel">
-        <h3>Add Technician</h3>
+        <h2 id="form_title">Add Technician</h2>
+        <p>Save a technician here so they show up in your template search.</p>
 
-        <label for="tech_name">Technician Name</label>
-        <input id="tech_name" type="text" placeholder="Enter technician name">
+        <div class="form-grid">
+          <div>
+            <label for="tech_name">Technician Name</label>
+            <input id="tech_name" placeholder="Example: Sean Lee">
+          </div>
 
-        <label for="tech_phone">Phone Number</label>
-        <input id="tech_phone" type="text" placeholder="Enter phone number">
+          <div>
+            <label for="tech_phone">Technician Phone</label>
+            <input id="tech_phone" placeholder="Example: (707) 606-1097">
+          </div>
+        </div>
 
-        <button class="action-btn" onclick="addTechnician()">Save Technician</button>
+        <div class="actions">
+          <button class="btn primary" onclick="saveTech()">Save Technician</button>
+          <button class="btn secondary" onclick="clearForm()">Clear</button>
+        </div>
 
-        <div id="statusBox" class="status"></div>
+        <div id="status" class="status"></div>
       </div>
 
       <div class="panel">
-        <h3>Saved Technicians</h3>
+        <h2>Saved Technicians</h2>
 
-        <div class="search-wrap">
-          <label for="search_input">Search</label>
-          <input id="search_input" type="text" placeholder="Search by name or phone" oninput="renderTechnicians()">
+        <div class="toolbar">
+          <input id="search_input" placeholder="Search technicians..." oninput="renderTechs()">
         </div>
 
-        <div id="tech_list" class="tech-list"></div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Phone</th>
+                <th style="width: 180px;">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="tech_table_body"></tbody>
+          </table>
+        </div>
       </div>
     </div>
   </div>
@@ -353,15 +359,165 @@
   <script>
     const API_URL = "http://66.42.117.96:8000";
     let technicians = [];
+    let editingTechId = null;
 
     function goTo(page) {
       window.location.href = page;
     }
 
-    function showStatus(message) {
-      const box = document.getElementById("statusBox");
-      box.textContent = message;
-      box.classList.add("show");
+    function setStatus(message) {
+      document.getElementById("status").textContent = message;
+    }
+
+    function clearForm() {
+      editingTechId = null;
+      document.getElementById("form_title").textContent = "Add Technician";
+      document.getElementById("tech_name").value = "";
+      document.getElementById("tech_phone").value = "";
+      setStatus("");
+    }
+
+    async function fetchTechs() {
+      const response = await fetch(`${API_URL}/technicians`);
+      if (!response.ok) {
+        throw new Error("Unable to load technicians.");
+      }
+      technicians = await response.json();
+    }
+
+    function renderTechs() {
+      const body = document.getElementById("tech_table_body");
+      const search = document.getElementById("search_input").value.toLowerCase().trim();
+
+      const filtered = technicians.filter(tech => {
+        const name = (tech.name || "").toLowerCase();
+        const phone = (tech.phone || "").toLowerCase();
+        return !search || name.includes(search) || phone.includes(search);
+      });
+
+      if (!filtered.length) {
+        body.innerHTML = `
+          <tr>
+            <td colspan="3" class="empty-state">No technicians found.</td>
+          </tr>
+        `;
+        return;
+      }
+
+      body.innerHTML = filtered.map(tech => `
+        <tr>
+          <td>${escapeHtml(tech.name || "")}</td>
+          <td>${escapeHtml(tech.phone || "")}</td>
+          <td>
+            <div class="row-actions">
+              <button class="mini-btn edit" onclick="editTech(${tech.id})">Edit</button>
+              <button class="mini-btn delete" onclick="deleteTech(${tech.id}, '${escapeJs(tech.name || "")}')">Delete</button>
+            </div>
+          </td>
+        </tr>
+      `).join("");
+    }
+
+    function editTech(id) {
+      const tech = technicians.find(t => t.id === id);
+      if (!tech) return;
+
+      editingTechId = id;
+      document.getElementById("form_title").textContent = "Edit Technician";
+      document.getElementById("tech_name").value = tech.name || "";
+      document.getElementById("tech_phone").value = tech.phone || "";
+      setStatus(`Editing ${tech.name}`);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+
+    async function saveTech() {
+      try {
+        const name = document.getElementById("tech_name").value.trim();
+        const phone = document.getElementById("tech_phone").value.trim();
+
+        if (!name || !phone) {
+          setStatus("Please enter both the technician name and phone.");
+          return;
+        }
+
+        let response;
+
+        if (editingTechId) {
+          response = await fetch(`${API_URL}/technicians/${editingTechId}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ name, phone })
+          });
+        } else {
+          response = await fetch(`${API_URL}/technicians`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ name, phone })
+          });
+        }
+
+        const text = await response.text();
+        let data = {};
+
+        try {
+          data = text ? JSON.parse(text) : {};
+        } catch {
+          throw new Error(text || "Invalid backend response.");
+        }
+
+        if (!response.ok) {
+          throw new Error(data.detail || "Unable to save technician.");
+        }
+
+        await fetchTechs();
+        renderTechs();
+
+        if (editingTechId) {
+          setStatus("Technician updated.");
+        } else {
+          setStatus("Technician saved.");
+        }
+
+        clearForm();
+      } catch (error) {
+        console.error(error);
+        setStatus(`Error: ${error.message}`);
+      }
+    }
+
+    async function deleteTech(id, name) {
+      const confirmed = confirm(`Delete ${name}?`);
+      if (!confirmed) return;
+
+      try {
+        const response = await fetch(`${API_URL}/technicians/${id}`, {
+          method: "DELETE"
+        });
+
+        const text = await response.text();
+        let data = {};
+
+        try {
+          data = text ? JSON.parse(text) : {};
+        } catch {
+          throw new Error(text || "Invalid backend response.");
+        }
+
+        if (!response.ok) {
+          throw new Error(data.detail || "Unable to delete technician.");
+        }
+
+        if (editingTechId === id) {
+          clearForm();
+        }
+
+        await fetchTechs();
+        renderTechs();
+        setStatus(`${name} deleted.`);
+      } catch (error) {
+        console.error(error);
+        setStatus(`Error: ${error.message}`);
+      }
     }
 
     function escapeHtml(value) {
@@ -373,65 +529,16 @@
         .replace(/>/g, "&gt;");
     }
 
-    async function fetchTechnicians() {
-      const response = await fetch(`${API_URL}/technicians`);
-      technicians = await response.json();
-      renderTechnicians();
+    function escapeJs(value) {
+      return String(value ?? "").replace(/\\/g, "\\\\").replace(/'/g, "\\'");
     }
 
-    function renderTechnicians() {
-      const search = document.getElementById("search_input").value.trim().toLowerCase();
-      const container = document.getElementById("tech_list");
-
-      const filtered = technicians.filter(tech => {
-        const name = (tech.name || "").toLowerCase();
-        const phone = (tech.phone || "").toLowerCase();
-        return name.includes(search) || phone.includes(search);
-      });
-
-      if (!filtered.length) {
-        container.innerHTML = `<div class="empty-state">No technicians found.</div>`;
-        return;
-      }
-
-      container.innerHTML = filtered.map(tech => `
-        <div class="tech-card">
-          <div class="tech-name">${escapeHtml(tech.name)}</div>
-          <div class="tech-phone">${escapeHtml(tech.phone)}</div>
-        </div>
-      `).join("");
+    async function initPage() {
+      await fetchTechs();
+      renderTechs();
     }
 
-    async function addTechnician() {
-      const name = document.getElementById("tech_name").value.trim();
-      const phone = document.getElementById("tech_phone").value.trim();
-
-      if (!name || !phone) {
-        showStatus("Enter both a technician name and phone number.");
-        return;
-      }
-
-      const response = await fetch(`${API_URL}/technicians`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({ name, phone })
-      });
-
-      if (!response.ok) {
-        showStatus("Unable to save technician.");
-        return;
-      }
-
-      document.getElementById("tech_name").value = "";
-      document.getElementById("tech_phone").value = "";
-
-      showStatus("Technician saved.");
-      await fetchTechnicians();
-    }
-
-    fetchTechnicians();
+    initPage();
   </script>
 </body>
 </html>
