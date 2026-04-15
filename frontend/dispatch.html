@@ -527,7 +527,7 @@
         </datalist>
 
         <div class="help-box">
-          This fixes the date format and uses the site’s local time zone to decide whether the greeting should say morning, afternoon, or evening.
+          Enter the site’s local time here. The email stays in site local time, but the calendar saves in your local time.
         </div>
 
         <div class="actions">
@@ -694,10 +694,123 @@
       }).format(new Date());
 
       const hour = parseInt(localHourString, 10);
-
       if (hour < 12) return "morning";
       if (hour < 17) return "afternoon";
       return "evening";
+    }
+
+    function parseTime12(timeString) {
+      const match = String(timeString || "").trim().match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+      if (!match) return null;
+
+      let hours = parseInt(match[1], 10);
+      const minutes = parseInt(match[2], 10);
+      const meridiem = match[3].toUpperCase();
+
+      if (meridiem === "AM" && hours === 12) hours = 0;
+      if (meridiem === "PM" && hours !== 12) hours += 12;
+
+      return { hours, minutes };
+    }
+
+    function getZonedParts(date, timeZone) {
+      const parts = new Intl.DateTimeFormat("en-US", {
+        timeZone,
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: false
+      }).formatToParts(date);
+
+      const obj = {};
+      for (const part of parts) {
+        if (part.type !== "literal") obj[part.type] = part.value;
+      }
+
+      return {
+        year: parseInt(obj.year, 10),
+        month: parseInt(obj.month, 10),
+        day: parseInt(obj.day, 10),
+        hour: parseInt(obj.hour, 10),
+        minute: parseInt(obj.minute, 10)
+      };
+    }
+
+    function zonedDateTimeToDate(dateStr, timeStr, timeZone) {
+      const [year, month, day] = dateStr.split("-").map(Number);
+      const parsedTime = parseTime12(timeStr);
+      if (!year || !month || !day || !parsedTime) return null;
+
+      let utcGuess = Date.UTC(year, month - 1, day, parsedTime.hours, parsedTime.minutes);
+
+      for (let i = 0; i < 3; i++) {
+        const zoned = getZonedParts(new Date(utcGuess), timeZone);
+        const desiredUtc = Date.UTC(year, month - 1, day, parsedTime.hours, parsedTime.minutes);
+        const zonedUtc = Date.UTC(zoned.year, zoned.month - 1, zoned.day, zoned.hour, zoned.minute);
+        utcGuess += desiredUtc - zonedUtc;
+      }
+
+      return new Date(utcGuess);
+    }
+
+    function formatLocalTime(dateObj) {
+      return dateObj.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+    }
+
+    function formatLocalDateInput(dateObj) {
+      const y = dateObj.getFullYear();
+      const m = String(dateObj.getMonth() + 1).padStart(2, "0");
+      const d = String(dateObj.getDate()).padStart(2, "0");
+      return `${y}-${m}-${d}`;
+    }
+
+    function buildConvertedSchedule(site) {
+      const siteTimeZone = inferTimeZoneFromAddress(site.address);
+
+      if (site.arrival_type === "window") {
+        const startDate = zonedDateTimeToDate(site.date, site.window_start, siteTimeZone);
+        const endDate = zonedDateTimeToDate(site.date, site.window_end, siteTimeZone);
+
+        if (!startDate || !endDate) {
+          return {
+            calendarDate: site.date,
+            localTime: "",
+            localWindowStart: site.window_start,
+            localWindowEnd: site.window_end,
+            displayTime: `${site.window_start} - ${site.window_end}`
+          };
+        }
+
+        return {
+          calendarDate: formatLocalDateInput(startDate),
+          localTime: "",
+          localWindowStart: formatLocalTime(startDate),
+          localWindowEnd: formatLocalTime(endDate),
+          displayTime: `${formatLocalTime(startDate)} - ${formatLocalTime(endDate)}`
+        };
+      }
+
+      const converted = zonedDateTimeToDate(site.date, site.time, siteTimeZone);
+
+      if (!converted) {
+        return {
+          calendarDate: site.date,
+          localTime: site.time,
+          localWindowStart: "",
+          localWindowEnd: "",
+          displayTime: site.time
+        };
+      }
+
+      return {
+        calendarDate: formatLocalDateInput(converted),
+        localTime: formatLocalTime(converted),
+        localWindowStart: "",
+        localWindowEnd: "",
+        displayTime: formatLocalTime(converted)
+      };
     }
 
     function getScopeLabel(projectType) {
@@ -876,9 +989,7 @@ Thank you,`;
     }
 
     async function saveEventForSite(site, projectType, techName, techPhone) {
-      const displayTime = site.arrival_type === "window"
-        ? `${site.window_start} - ${site.window_end}`
-        : site.time;
+      const converted = buildConvertedSchedule(site);
 
       const eventPayload = {
         client: site.client,
@@ -893,13 +1004,15 @@ Thank you,`;
         task_id: site.task_id,
         template_type: "Survey",
         project_type: projectType,
-        date: site.date,
+        date: converted.calendarDate,
         site_date: site.date,
-        time: site.arrival_type === "exact" ? site.time : "",
-        window_start: site.arrival_type === "window" ? site.window_start : "",
-        window_end: site.arrival_type === "window" ? site.window_end : "",
-        displayTime: displayTime,
-        site_display_time: displayTime,
+        time: converted.localTime,
+        window_start: converted.localWindowStart,
+        window_end: converted.localWindowEnd,
+        displayTime: converted.displayTime,
+        site_display_time: site.arrival_type === "window"
+          ? `${site.window_start} - ${site.window_end}`
+          : site.time,
         site_timezone: inferTimeZoneFromAddress(site.address),
         site_timezone_label: "",
         arrival_type: site.arrival_type,
