@@ -5,6 +5,8 @@ from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from typing import Optional, List, Tuple
 from datetime import datetime, timedelta
+from google.oauth2 import service_account
+from googleapiclient.discovery import build
 import sqlite3
 import requests
 import os
@@ -21,8 +23,20 @@ CLICKUP_WEBHOOK_URL = os.environ.get(
     "CLICKUP_WEBHOOK_URL",
     "https://hook.us1.make.com/tzham3njl79ucri6lmsd9imvecnft9xq"
 )
-
 CLICKUP_DELETE_WEBHOOK_URL = os.environ.get("CLICKUP_DELETE_WEBHOOK_URL", "")
+
+# -----------------------------
+# DRIVE / ASANA CONFIG
+# -----------------------------
+ASANA_TOKEN = os.environ.get("ASANA_TOKEN", "")
+ASANA_PROJECT_ID = "1206280340344209"
+ASANA_SECTION_ID = "1206281947668069"
+GOOGLE_DRIVE_PARENT_FOLDER_ID = "15ZdGKmUFolQZ2RKnfYsvz8btoc-dOK_P"
+GOOGLE_SERVICE_ACCOUNT_FILE = os.path.join(
+    os.path.dirname(os.path.abspath(__file__)),
+    "google-service-account.json"
+)
+GOOGLE_DRIVE_SCOPES = ["https://www.googleapis.com/auth/drive"]
 
 app.add_middleware(
     CORSMiddleware,
@@ -100,7 +114,6 @@ def init_db():
     ensure_column(cur, "events", "access_control_clickup_id", "TEXT DEFAULT ''")
     ensure_column(cur, "events", "ip_camera_proposal", "TEXT DEFAULT ''")
     ensure_column(cur, "events", "access_control_proposal", "TEXT DEFAULT ''")
-
     ensure_column(cur, "events", "ip_checkin_comment_id", "TEXT DEFAULT ''")
     ensure_column(cur, "events", "ac_checkin_comment_id", "TEXT DEFAULT ''")
     ensure_column(cur, "events", "ip_checkout_comment_id", "TEXT DEFAULT ''")
@@ -210,6 +223,22 @@ class ResetBotCommentsPayload(BaseModel):
     event_id: int
 
 
+class ProjectNameRequest(BaseModel):
+    request_type: str
+    site_name: str
+    city: str
+    state: str
+
+
+class CreateDriveFolderRequest(BaseModel):
+    folder_name: str
+    is_survey: bool = False
+
+
+class CreateAsanaTaskRequest(BaseModel):
+    task_name: str
+
+
 # -----------------------------
 # HELPERS
 # -----------------------------
@@ -306,8 +335,11 @@ def greeting_for_time(data: GenerateTemplateIn) -> str:
     return "afternoon"
 
 
-def proposal_block(data: GenerateTemplateIn) -> str:
+def proposal_block(data: GenerateTemplateIn, mode: str) -> str:
     pt = (data.project_type or "").strip().lower()
+
+    if mode == "service":
+        return ""
 
     if pt == "both":
         return (
@@ -345,7 +377,7 @@ Client: {data.client}
 Site: {data.site}
 Project Address: {data.address}
 
-{proposal_block(data)}
+{proposal_block(data, "survey")}
 
 If any of the information above needs correction, please email me as soon as possible.
 
@@ -401,7 +433,7 @@ Client: {data.client}
 Site: {data.site}
 Project Address: {data.address}
 
-{proposal_block(data)}
+{proposal_block(data, "installation")}
 
 If any of the information above needs correction, please email me as soon as possible.
 
@@ -442,6 +474,97 @@ def delete_clickup_comment(task_id: str, comment_id: str):
         "comment_id": comment_id
     }
     return requests.post(CLICKUP_DELETE_WEBHOOK_URL, json=payload, timeout=20)
+
+
+# -----------------------------
+# GOOGLE DRIVE HELPERS
+# -----------------------------
+def get_drive_service():
+    creds = service_account.Credentials.from_service_account_file(
+        GOOGLE_SERVICE_ACCOUNT_FILE,
+        scopes=GOOGLE_DRIVE_SCOPES
+    )
+    return build("drive", "v3", credentials=creds)
+
+
+def list_active_project_folders():
+    service = get_drive_service()
+    results = service.files().list(
+        q=(
+            f"'{GOOGLE_DRIVE_PARENT_FOLDER_ID}' in parents "
+            f"and mimeType = 'application/vnd.google-apps.folder' "
+            f"and trashed = false"
+        ),
+        fields="files(id, name, createdTime)",
+        pageSize=1000
+    ).execute()
+    return results.get("files", [])
+
+
+def get_next_project_number():
+    folders = list_active_project_folders()
+    now = datetime.now()
+    prefix = now.strftime("%y%m")
+    highest = 0
+
+    for folder in folders:
+        name = folder.get("name", "").strip()
+        match = re.match(rf"^{prefix}(\d{{3}})\b", name)
+        if match:
+            number = int(match.group(1))
+            if number > highest:
+                highest = number
+
+    next_number = highest + 1 if highest > 0 else 1
+    return f"{prefix}{next_number:03d}"
+
+
+def create_drive_folder(name: str, parent_id: str):
+    service = get_drive_service()
+    file_metadata = {
+        "name": name,
+        "mimeType": "application/vnd.google-apps.folder",
+        "parents": [parent_id]
+    }
+    folder = service.files().create(
+        body=file_metadata,
+        fields="id, name, webViewLink"
+    ).execute()
+    return folder
+
+
+def create_scw_provided_documents_subfolder(parent_folder_id: str):
+    return create_drive_folder("SCW Provided Documents", parent_folder_id)
+
+
+# -----------------------------
+# ASANA HELPERS
+# -----------------------------
+def create_asana_task(name: str):
+    url = "https://app.asana.com/api/1.0/tasks"
+    headers = {
+        "Authorization": f"Bearer {ASANA_TOKEN}",
+        "Content-Type": "application/json"
+    }
+    payload = {
+        "data": {
+            "name": name,
+            "projects": [ASANA_PROJECT_ID],
+            "memberships": [
+                {
+                    "project": ASANA_PROJECT_ID,
+                    "section": ASANA_SECTION_ID
+                }
+            ]
+        }
+    }
+
+    response = requests.post(url, headers=headers, json=payload, timeout=30)
+
+    if not response.ok:
+        raise Exception(f"Asana error: {response.text}")
+
+    return response.json()
 
 
 # -----------------------------
@@ -488,13 +611,13 @@ def event_start_end_for_ics(event: dict) -> Tuple[Optional[datetime], Optional[d
     arrival_type = (event.get("arrival_type") or "exact").lower()
 
     if arrival_type == "window":
-      start_dt = build_event_datetime(date_str, event.get("window_start") or "")
-      end_dt = build_event_datetime(date_str, event.get("window_end") or "")
-      if start_dt and end_dt and end_dt > start_dt:
-          return start_dt, end_dt
-      if start_dt:
-          return start_dt, start_dt + timedelta(hours=1)
-      return None, None
+        start_dt = build_event_datetime(date_str, event.get("window_start") or "")
+        end_dt = build_event_datetime(date_str, event.get("window_end") or "")
+        if start_dt and end_dt and end_dt > start_dt:
+            return start_dt, end_dt
+        if start_dt:
+            return start_dt, start_dt + timedelta(hours=1)
+        return None, None
 
     start_dt = build_event_datetime(date_str, event.get("time") or "")
     if start_dt:
@@ -579,6 +702,90 @@ def build_ics_text(events: List[dict], host: str) -> str:
 @app.get("/health")
 def health():
     return {"status": "ok"}
+
+
+# -----------------------------
+# TEST ROUTES
+# -----------------------------
+@app.get("/test-drive")
+def test_drive():
+    try:
+        folders = list_active_project_folders()
+        next_number = get_next_project_number()
+        return {
+            "status": "ok",
+            "folder_count": len(folders),
+            "next_project_number": next_number,
+            "sample_folders": folders[:10]
+        }
+    except Exception as e:
+        return {
+            "status": "error",
+            "folder_id_being_used": GOOGLE_DRIVE_PARENT_FOLDER_ID,
+            "error": str(e)
+        }
+
+
+@app.get("/test-asana")
+def test_asana():
+    try:
+        test_name = "TEST DELETE ME"
+        response = create_asana_task(test_name)
+        return {
+            "status": "ok",
+            "response": response
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# -----------------------------
+# SCW JOB REQUEST ROUTES
+# -----------------------------
+@app.post("/scw/next-name")
+def scw_next_name(data: ProjectNameRequest):
+    try:
+        next_number = get_next_project_number()
+        request_type_clean = data.request_type.strip().title()
+        full_name = f"{next_number} {request_type_clean} - {data.site_name.strip()}, {data.city.strip()} {data.state.strip()}"
+
+        return {
+            "status": "ok",
+            "next_project_number": next_number,
+            "full_name": full_name
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/scw/create-drive-folder")
+def scw_create_drive_folder(data: CreateDriveFolderRequest):
+    try:
+        main_folder = create_drive_folder(data.folder_name, GOOGLE_DRIVE_PARENT_FOLDER_ID)
+
+        subfolder = None
+        if data.is_survey:
+            subfolder = create_scw_provided_documents_subfolder(main_folder["id"])
+
+        return {
+            "status": "ok",
+            "main_folder": main_folder,
+            "scw_provided_documents": subfolder
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/scw/create-asana-task")
+def scw_create_asana_task(data: CreateAsanaTaskRequest):
+    try:
+        task = create_asana_task(data.task_name)
+        return {
+            "status": "ok",
+            "task": task
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 # -----------------------------
@@ -854,7 +1061,7 @@ def generate_installation(data: GenerateTemplateIn):
 
 
 # -----------------------------
-# CHECK-IN / CHECK-OUT WEBHOOKS
+# CHECK-IN / CHECK-OUT
 # -----------------------------
 @app.post("/send-checkin")
 def send_checkin(payload: CheckinPayload):
@@ -1034,7 +1241,6 @@ def reset_bot_comments(payload: ResetBotCommentsPayload):
         raise HTTPException(status_code=404, detail="Event not found")
 
     event_data = dict(event)
-
     deleted = []
     skipped = []
 
@@ -1189,15 +1395,16 @@ def serve_checkin():
 def serve_technicians():
     return FileResponse(os.path.join(FRONTEND_DIR, "technicians.html"))
 
+@app.get("/scw-requests.html")
+def serve_scw_requests():
+    return FileResponse(os.path.join(FRONTEND_DIR, "scw-requests.html"))    
+
 
 @app.get("/")
 def serve_home():
     return FileResponse(os.path.join(FRONTEND_DIR, "index.html"))
 
 
-# -----------------------------
-# RUN
-# -----------------------------
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("app:app", host="0.0.0.0", port=int(os.environ.get("PORT", 8000)))
+    uvicorn.run("app:app", host="0.0.0.0", port=int(os.environ.get("PORT", 8000)), reload=True)

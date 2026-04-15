@@ -1,0 +1,727 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SCW Job Requests</title>
+  <style>
+    :root {
+      --bg: #f4f7fb;
+      --panel: #ffffff;
+      --border: #dde5ed;
+      --text: #1f2a33;
+      --muted: #6b7785;
+      --svs-dark: #243746;
+      --svs-blue: #49697c;
+      --green: #16a34a;
+      --green-soft: #dcfce7;
+      --blue: #2563eb;
+      --blue-soft: #dbeafe;
+      --orange: #ea580c;
+      --orange-soft: #ffedd5;
+      --red: #dc2626;
+      --red-soft: #fee2e2;
+      --shadow: 0 16px 36px rgba(31, 41, 51, 0.08);
+      --radius-lg: 22px;
+      --radius-md: 16px;
+      --radius-sm: 12px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: Arial, Helvetica, sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top left, rgba(73, 105, 124, 0.10), transparent 24%),
+        linear-gradient(180deg, #f8fafc 0%, #f3f6fa 100%);
+      min-height: 100vh;
+    }
+
+    .page {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 24px 18px 36px;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+
+    .back-btn {
+      border: 1px solid var(--border);
+      background: white;
+      color: var(--svs-dark);
+      border-radius: 14px;
+      padding: 10px 14px;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .back-btn:hover {
+      background: #f8fafc;
+    }
+
+    .hero {
+      background: linear-gradient(135deg, rgba(36, 55, 70, 0.96), rgba(73, 105, 124, 0.92));
+      color: white;
+      border-radius: 28px;
+      padding: 24px 26px;
+      box-shadow: var(--shadow);
+      margin-bottom: 20px;
+    }
+
+    .hero h1 {
+      margin: 0 0 8px;
+      font-size: 32px;
+      line-height: 1.08;
+    }
+
+    .hero p {
+      margin: 0;
+      color: rgba(255,255,255,0.84);
+      font-size: 15px;
+      line-height: 1.6;
+      max-width: 760px;
+    }
+
+    .main-grid {
+      display: grid;
+      grid-template-columns: 1fr 0.95fr;
+      gap: 20px;
+      align-items: start;
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .panel-header {
+      padding: 18px 20px 14px;
+      border-bottom: 1px solid var(--border);
+      background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+    }
+
+    .panel-header h2 {
+      margin: 0;
+      font-size: 22px;
+      color: var(--svs-dark);
+    }
+
+    .panel-header p {
+      margin: 6px 0 0;
+      font-size: 14px;
+      color: var(--muted);
+    }
+
+    .panel-body {
+      padding: 18px;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .field {
+      display: grid;
+      gap: 7px;
+    }
+
+    .field.full {
+      grid-column: 1 / -1;
+    }
+
+    label {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--svs-dark);
+    }
+
+    input,
+    select,
+    textarea {
+      width: 100%;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px 13px;
+      font-size: 14px;
+      color: var(--text);
+      background: white;
+      outline: none;
+    }
+
+    input:focus,
+    select:focus,
+    textarea:focus {
+      border-color: #bfd0dd;
+      box-shadow: 0 0 0 3px rgba(73, 105, 124, 0.08);
+    }
+
+    .actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 18px;
+    }
+
+    .btn {
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 12px 16px;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      background: white;
+      color: var(--svs-dark);
+    }
+
+    .btn:hover {
+      background: #f8fafc;
+    }
+
+    .btn.primary {
+      background: linear-gradient(135deg, var(--svs-dark), var(--svs-blue));
+      color: white;
+      border: none;
+    }
+
+    .btn.green {
+      background: var(--green-soft);
+      color: #166534;
+      border-color: #ccefd9;
+    }
+
+    .btn.blue {
+      background: var(--blue-soft);
+      color: #1d4ed8;
+      border-color: #cfe0ff;
+    }
+
+    .btn.orange {
+      background: var(--orange-soft);
+      color: #c2410c;
+      border-color: #fed7aa;
+    }
+
+    .btn.red {
+      background: var(--red-soft);
+      color: #b91c1c;
+      border-color: #fecaca;
+    }
+
+    .result-card {
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      background: #fbfdff;
+      padding: 16px;
+      display: grid;
+      gap: 14px;
+    }
+
+    .result-block {
+      display: grid;
+      gap: 6px;
+    }
+
+    .result-label {
+      font-size: 12px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+      color: var(--muted);
+    }
+
+    .result-value {
+      font-size: 15px;
+      line-height: 1.55;
+      color: var(--text);
+      word-break: break-word;
+    }
+
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      width: fit-content;
+      border-radius: 999px;
+      padding: 8px 11px;
+      font-size: 12px;
+      font-weight: 800;
+      border: 1px solid transparent;
+    }
+
+    .status-idle {
+      background: #f3f4f6;
+      color: #4b5563;
+      border-color: #e5e7eb;
+    }
+
+    .status-success {
+      background: var(--green-soft);
+      color: #166534;
+      border-color: #ccefd9;
+    }
+
+    .status-error {
+      background: var(--red-soft);
+      color: #b91c1c;
+      border-color: #fecaca;
+    }
+
+    .status-working {
+      background: var(--blue-soft);
+      color: #1d4ed8;
+      border-color: #cfe0ff;
+    }
+
+    .small-note {
+      font-size: 13px;
+      color: var(--muted);
+      line-height: 1.6;
+      margin-top: 12px;
+    }
+
+    .links {
+      display: grid;
+      gap: 10px;
+    }
+
+    .link-row a {
+      color: #1d4ed8;
+      text-decoration: none;
+      font-weight: 700;
+      word-break: break-all;
+    }
+
+    .link-row a:hover {
+      text-decoration: underline;
+    }
+
+    .log-box {
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      background: #0f172a;
+      color: #e2e8f0;
+      font-family: Consolas, monospace;
+      font-size: 12px;
+      line-height: 1.5;
+      padding: 14px;
+      min-height: 150px;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    @media (max-width: 980px) {
+      .main-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 700px) {
+      .form-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .hero h1 {
+        font-size: 28px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <div class="topbar">
+      <button class="back-btn" onclick="goHome()">← Back to Dashboard</button>
+    </div>
+
+    <div class="hero">
+      <h1>SCW Job Requests</h1>
+      <p>
+        Build the next project name, create the Google Drive folder, and create the Asana task from one review page.
+      </p>
+    </div>
+
+    <div class="main-grid">
+      <div class="panel">
+        <div class="panel-header">
+          <h2>Request Setup</h2>
+          <p>Manual review page for SCW surveys and service calls.</p>
+        </div>
+
+        <div class="panel-body">
+          <div class="form-grid">
+            <div class="field">
+              <label for="requestType">Request Type</label>
+              <select id="requestType">
+                <option value="Survey">Survey</option>
+                <option value="Service">Service</option>
+              </select>
+            </div>
+
+            <div class="field">
+              <label for="siteName">Site Name</label>
+              <input id="siteName" type="text" placeholder="Church Childcare" />
+            </div>
+
+            <div class="field">
+              <label for="city">City</label>
+              <input id="city" type="text" placeholder="Walkertown" />
+            </div>
+
+            <div class="field">
+              <label for="state">State</label>
+              <input id="state" type="text" placeholder="NC" maxlength="20" />
+            </div>
+
+            <div class="field full">
+              <label for="generatedName">Generated Name</label>
+              <input id="generatedName" type="text" placeholder="Generated name will show here" readonly />
+            </div>
+          </div>
+
+          <div class="actions">
+            <button class="btn primary" onclick="generateName()">Generate Name</button>
+            <button class="btn blue" onclick="createDriveFolder()">Create Drive Folder</button>
+            <button class="btn green" onclick="createAsanaTask()">Create Asana Task</button>
+            <button class="btn orange" onclick="createBoth()">Create Both</button>
+            <button class="btn red" onclick="clearForm()">Clear</button>
+          </div>
+
+          <div class="small-note">
+            Surveys will create an <strong>SCW Provided Documents</strong> subfolder. Service calls will only create the main folder.
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-header">
+          <h2>Results</h2>
+          <p>Review what was created before moving on.</p>
+        </div>
+
+        <div class="panel-body">
+          <div class="result-card">
+            <div class="result-block">
+              <div class="result-label">Status</div>
+              <div id="statusPill" class="status-pill status-idle">Idle</div>
+            </div>
+
+            <div class="result-block">
+              <div class="result-label">Next Project Number</div>
+              <div id="nextNumber" class="result-value">—</div>
+            </div>
+
+            <div class="result-block">
+              <div class="result-label">Final Name</div>
+              <div id="finalName" class="result-value">—</div>
+            </div>
+
+            <div class="result-block">
+              <div class="result-label">Created Links</div>
+              <div id="createdLinks" class="links">
+                <div class="result-value">No links yet.</div>
+              </div>
+            </div>
+
+            <div class="result-block">
+              <div class="result-label">Response Log</div>
+              <div id="logBox" class="log-box">Ready.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const API_URL = "http://127.0.0.1:8000";
+
+    function goHome() {
+      window.location.href = "index.html";
+    }
+
+    function setStatus(type, text) {
+      const el = document.getElementById("statusPill");
+      el.textContent = text;
+      el.className = "status-pill";
+
+      if (type === "success") el.classList.add("status-success");
+      else if (type === "error") el.classList.add("status-error");
+      else if (type === "working") el.classList.add("status-working");
+      else el.classList.add("status-idle");
+    }
+
+    function logResponse(data) {
+      document.getElementById("logBox").textContent =
+        typeof data === "string" ? data : JSON.stringify(data, null, 2);
+    }
+
+    function updateLinks(items = []) {
+      const wrap = document.getElementById("createdLinks");
+
+      if (!items.length) {
+        wrap.innerHTML = `<div class="result-value">No links yet.</div>`;
+        return;
+      }
+
+      wrap.innerHTML = items.map(item => `
+        <div class="link-row">
+          <a href="${item.url}" target="_blank" rel="noopener noreferrer">${item.label}</a>
+        </div>
+      `).join("");
+    }
+
+    function getFormData() {
+      return {
+        request_type: document.getElementById("requestType").value.trim(),
+        site_name: document.getElementById("siteName").value.trim(),
+        city: document.getElementById("city").value.trim(),
+        state: document.getElementById("state").value.trim()
+      };
+    }
+
+    function validateForm() {
+      const data = getFormData();
+      if (!data.request_type || !data.site_name || !data.city || !data.state) {
+        setStatus("error", "Missing Info");
+        logResponse("Fill in request type, site name, city, and state first.");
+        return false;
+      }
+      return true;
+    }
+
+    async function generateName() {
+      if (!validateForm()) return;
+
+      setStatus("working", "Generating");
+      updateLinks([]);
+
+      try {
+        const response = await fetch(`${API_URL}/scw/next-name`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(getFormData())
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          setStatus("error", "Error");
+          logResponse(data);
+          return;
+        }
+
+        document.getElementById("generatedName").value = data.full_name || "";
+        document.getElementById("nextNumber").textContent = data.next_project_number || "—";
+        document.getElementById("finalName").textContent = data.full_name || "—";
+
+        setStatus("success", "Name Ready");
+        logResponse(data);
+      } catch (error) {
+        setStatus("error", "Error");
+        logResponse(String(error));
+      }
+    }
+
+    async function createDriveFolder() {
+      const folderName = document.getElementById("generatedName").value.trim();
+      if (!folderName) {
+        setStatus("error", "No Name");
+        logResponse("Generate the name first.");
+        return;
+      }
+
+      setStatus("working", "Creating Drive Folder");
+
+      try {
+        const response = await fetch(`${API_URL}/scw/create-drive-folder`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            folder_name: folderName,
+            is_survey: document.getElementById("requestType").value === "Survey"
+          })
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          setStatus("error", "Drive Error");
+          logResponse(data);
+          return;
+        }
+
+        const links = [];
+        if (data.main_folder?.webViewLink) {
+          links.push({
+            label: `Main Folder: ${data.main_folder.name}`,
+            url: data.main_folder.webViewLink
+          });
+        }
+        if (data.scw_provided_documents?.webViewLink) {
+          links.push({
+            label: `SCW Provided Documents: ${data.scw_provided_documents.name}`,
+            url: data.scw_provided_documents.webViewLink
+          });
+        }
+
+        updateLinks(links);
+        setStatus("success", "Drive Done");
+        logResponse(data);
+      } catch (error) {
+        setStatus("error", "Drive Error");
+        logResponse(String(error));
+      }
+    }
+
+    async function createAsanaTask() {
+      const taskName = document.getElementById("generatedName").value.trim();
+      if (!taskName) {
+        setStatus("error", "No Name");
+        logResponse("Generate the name first.");
+        return;
+      }
+
+      setStatus("working", "Creating Asana Task");
+
+      try {
+        const response = await fetch(`${API_URL}/scw/create-asana-task`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ task_name: taskName })
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          setStatus("error", "Asana Error");
+          logResponse(data);
+          return;
+        }
+
+        const links = [];
+        const permalink = data.task?.data?.permalink_url;
+        const taskTitle = data.task?.data?.name || taskName;
+
+        if (permalink) {
+          links.push({
+            label: `Asana Task: ${taskTitle}`,
+            url: permalink
+          });
+        } else {
+          links.push({
+            label: `Asana Task Created: ${taskTitle}`,
+            url: "#"
+          });
+        }
+
+        updateLinks(links.filter(x => x.url !== "#"));
+        setStatus("success", "Asana Done");
+        logResponse(data);
+      } catch (error) {
+        setStatus("error", "Asana Error");
+        logResponse(String(error));
+      }
+    }
+
+    async function createBoth() {
+      const folderName = document.getElementById("generatedName").value.trim();
+      if (!folderName) {
+        setStatus("error", "No Name");
+        logResponse("Generate the name first.");
+        return;
+      }
+
+      setStatus("working", "Creating Both");
+
+      try {
+        const driveResponse = await fetch(`${API_URL}/scw/create-drive-folder`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            folder_name: folderName,
+            is_survey: document.getElementById("requestType").value === "Survey"
+          })
+        });
+
+        const driveData = await driveResponse.json();
+        if (!driveResponse.ok) {
+          setStatus("error", "Drive Error");
+          logResponse(driveData);
+          return;
+        }
+
+        const asanaResponse = await fetch(`${API_URL}/scw/create-asana-task`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ task_name: folderName })
+        });
+
+        const asanaData = await asanaResponse.json();
+        if (!asanaResponse.ok) {
+          setStatus("error", "Asana Error");
+          logResponse(asanaData);
+          return;
+        }
+
+        const links = [];
+        if (driveData.main_folder?.webViewLink) {
+          links.push({
+            label: `Main Folder: ${driveData.main_folder.name}`,
+            url: driveData.main_folder.webViewLink
+          });
+        }
+        if (driveData.scw_provided_documents?.webViewLink) {
+          links.push({
+            label: `SCW Provided Documents: ${driveData.scw_provided_documents.name}`,
+            url: driveData.scw_provided_documents.webViewLink
+          });
+        }
+        if (asanaData.task?.data?.permalink_url) {
+          links.push({
+            label: `Asana Task: ${asanaData.task.data.name || folderName}`,
+            url: asanaData.task.data.permalink_url
+          });
+        }
+
+        updateLinks(links);
+        setStatus("success", "Both Created");
+        logResponse({
+          drive: driveData,
+          asana: asanaData
+        });
+      } catch (error) {
+        setStatus("error", "Error");
+        logResponse(String(error));
+      }
+    }
+
+    function clearForm() {
+      document.getElementById("requestType").value = "Survey";
+      document.getElementById("siteName").value = "";
+      document.getElementById("city").value = "";
+      document.getElementById("state").value = "";
+      document.getElementById("generatedName").value = "";
+      document.getElementById("nextNumber").textContent = "—";
+      document.getElementById("finalName").textContent = "—";
+      updateLinks([]);
+      setStatus("idle", "Idle");
+      logResponse("Ready.");
+    }
+  </script>
+</body>
+</html>

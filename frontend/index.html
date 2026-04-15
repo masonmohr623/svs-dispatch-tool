@@ -8,7 +8,6 @@
     :root {
       --bg: #f4f7fb;
       --panel: rgba(255,255,255,0.92);
-      --panel-solid: #ffffff;
       --border: #dde5ed;
       --text: #1f2a33;
       --muted: #6b7785;
@@ -17,17 +16,14 @@
 
       --svs-dark: #243746;
       --svs-blue: #49697c;
-      --svs-accent: #6f8ea0;
-      --svs-soft: #edf3f6;
 
-      --blue: #3b82f6;
       --blue-soft: #dbeafe;
-      --green: #22c55e;
       --green-soft: #dcfce7;
-      --amber: #f59e0b;
       --amber-soft: #fef3c7;
-      --red: #ef4444;
       --red-soft: #fee2e2;
+      --purple-soft: #ede9fe;
+      --teal-soft: #ccfbf1;
+      --lime-soft: #ecfccb;
 
       --radius-xl: 28px;
       --radius-lg: 20px;
@@ -60,8 +56,7 @@
       position: relative;
       overflow: hidden;
       border-radius: 30px;
-      background:
-        linear-gradient(135deg, rgba(36, 55, 70, 0.96), rgba(73, 105, 124, 0.92));
+      background: linear-gradient(135deg, rgba(36, 55, 70, 0.96), rgba(73, 105, 124, 0.92));
       color: white;
       padding: 26px 28px;
       box-shadow: var(--shadow);
@@ -309,9 +304,10 @@
     .icon-survey { background: var(--blue-soft); }
     .icon-service { background: var(--amber-soft); }
     .icon-installation { background: var(--green-soft); }
-    .icon-calendar { background: #ede9fe; }
-    .icon-checkin { background: #ecfccb; }
+    .icon-calendar { background: var(--purple-soft); }
+    .icon-checkin { background: var(--lime-soft); }
     .icon-techs { background: #ffe4e6; }
+    .icon-scw { background: var(--teal-soft); }
 
     .action-title {
       font-size: 17px;
@@ -438,19 +434,19 @@
 
     .badge-survey {
       background: var(--blue-soft);
-      color: var(--blue);
+      color: #2563eb;
       border-color: #cfe0ff;
     }
 
     .badge-installation {
       background: var(--green-soft);
-      color: var(--green);
+      color: #16a34a;
       border-color: #ccefd9;
     }
 
     .badge-service {
       background: var(--amber-soft);
-      color: var(--amber);
+      color: #d97706;
       border-color: #f6e1a6;
     }
 
@@ -716,6 +712,14 @@
                     </div>
                     <h3 class="action-title">Technicians</h3>
                     <p class="action-desc">Search, manage, and reuse technician contact info across templates.</p>
+                  </div>
+
+                  <div class="action-card" onclick="goTo('scw-requests.html')">
+                    <div class="action-top">
+                      <div class="action-icon icon-scw"><span class="icon-mark"></span></div>
+                    </div>
+                    <h3 class="action-title">SCW Job Requests</h3>
+                    <p class="action-desc">Build SCW survey and service request names, create Drive folders, and create Asana tasks.</p>
                   </div>
                 </div>
 
