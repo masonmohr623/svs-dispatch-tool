@@ -589,6 +589,13 @@
       outline: none;
     }
 
+    .modal-note {
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
     .modal-actions {
       display: flex;
       gap: 10px;
@@ -822,7 +829,7 @@
           </div>
 
           <div class="field">
-            <label for="edit_date">Date</label>
+            <label for="edit_date">Site Date</label>
             <input type="date" id="edit_date">
           </div>
 
@@ -835,18 +842,24 @@
           </div>
 
           <div class="field" id="edit_time_field">
-            <label for="edit_time">Time</label>
+            <label for="edit_time">Site Local Time</label>
             <input id="edit_time" placeholder="Example: 1:00 PM">
           </div>
 
           <div class="field hidden" id="edit_window_start_field">
-            <label for="edit_window_start">Window Start</label>
+            <label for="edit_window_start">Site Local Window Start</label>
             <input id="edit_window_start" placeholder="Example: 10:00 AM">
           </div>
 
           <div class="field hidden" id="edit_window_end_field">
-            <label for="edit_window_end">Window End</label>
+            <label for="edit_window_end">Site Local Window End</label>
             <input id="edit_window_end" placeholder="Example: 12:00 PM">
+          </div>
+
+          <div class="field full">
+            <div class="modal-note">
+              Enter the site’s local time here. The calendar will convert and save it in your local time.
+            </div>
           </div>
 
           <div class="field full" id="edit_single_clickup_field">
@@ -952,16 +965,175 @@
       return `<span class="status-pill not-checked">Not Checked In</span>`;
     }
 
+    function getAddressState(address) {
+      const upper = String(address || "").toUpperCase().trim();
+      const abbrevMatch = upper.match(/\b(AL|AK|AZ|AR|CA|CO|CT|DE|FL|GA|HI|ID|IL|IN|IA|KS|KY|LA|ME|MD|MA|MI|MN|MS|MO|MT|NE|NV|NH|NJ|NM|NY|NC|ND|OH|OK|OR|PA|RI|SC|SD|TN|TX|UT|VT|VA|WA|WV|WI|WY)\b(?:\s+\d{5}(?:-\d{4})?)?$/);
+      if (abbrevMatch) return abbrevMatch[1];
+
+      const stateNames = {
+        ALABAMA: "AL", ALASKA: "AK", ARIZONA: "AZ", ARKANSAS: "AR", CALIFORNIA: "CA",
+        COLORADO: "CO", CONNECTICUT: "CT", DELAWARE: "DE", FLORIDA: "FL", GEORGIA: "GA",
+        HAWAII: "HI", IDAHO: "ID", ILLINOIS: "IL", INDIANA: "IN", IOWA: "IA",
+        KANSAS: "KS", KENTUCKY: "KY", LOUISIANA: "LA", MAINE: "ME", MARYLAND: "MD",
+        MASSACHUSETTS: "MA", MICHIGAN: "MI", MINNESOTA: "MN", MISSISSIPPI: "MS",
+        MISSOURI: "MO", MONTANA: "MT", NEBRASKA: "NE", NEVADA: "NV", "NEW HAMPSHIRE": "NH",
+        "NEW JERSEY": "NJ", "NEW MEXICO": "NM", "NEW YORK": "NY", "NORTH CAROLINA": "NC",
+        "NORTH DAKOTA": "ND", OHIO: "OH", OKLAHOMA: "OK", OREGON: "OR", PENNSYLVANIA: "PA",
+        "RHODE ISLAND": "RI", "SOUTH CAROLINA": "SC", "SOUTH DAKOTA": "SD", TENNESSEE: "TN",
+        TEXAS: "TX", UTAH: "UT", VERMONT: "VT", VIRGINIA: "VA", WASHINGTON: "WA",
+        "WEST VIRGINIA": "WV", WISCONSIN: "WI", WYOMING: "WY"
+      };
+
+      for (const [name, abbr] of Object.entries(stateNames)) {
+        if (upper.includes(name)) return abbr;
+      }
+      return null;
+    }
+
+    function inferTimeZoneFromAddress(address) {
+      const state = getAddressState(address);
+      const map = {
+        AL: "America/Chicago", AK: "America/Anchorage", AZ: "America/Phoenix", AR: "America/Chicago",
+        CA: "America/Los_Angeles", CO: "America/Denver", CT: "America/New_York", DE: "America/New_York",
+        FL: "America/New_York", GA: "America/New_York", HI: "Pacific/Honolulu", ID: "America/Denver",
+        IL: "America/Chicago", IN: "America/New_York", IA: "America/Chicago", KS: "America/Chicago",
+        KY: "America/New_York", LA: "America/Chicago", ME: "America/New_York", MD: "America/New_York",
+        MA: "America/New_York", MI: "America/New_York", MN: "America/Chicago", MS: "America/Chicago",
+        MO: "America/Chicago", MT: "America/Denver", NE: "America/Chicago", NV: "America/Los_Angeles",
+        NH: "America/New_York", NJ: "America/New_York", NM: "America/Denver", NY: "America/New_York",
+        NC: "America/New_York", ND: "America/Chicago", OH: "America/New_York", OK: "America/Chicago",
+        OR: "America/Los_Angeles", PA: "America/New_York", RI: "America/New_York", SC: "America/New_York",
+        SD: "America/Chicago", TN: "America/Chicago", TX: "America/Chicago", UT: "America/Denver",
+        VT: "America/New_York", VA: "America/New_York", WA: "America/Los_Angeles", WV: "America/New_York",
+        WI: "America/Chicago", WY: "America/Denver"
+      };
+      return map[state] || Intl.DateTimeFormat().resolvedOptions().timeZone;
+    }
+
+    function parseTime12(timeString) {
+      const match = String(timeString || "").trim().match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+      if (!match) return null;
+
+      let hours = parseInt(match[1], 10);
+      const minutes = parseInt(match[2], 10);
+      const meridiem = match[3].toUpperCase();
+
+      if (meridiem === "AM" && hours === 12) hours = 0;
+      if (meridiem === "PM" && hours !== 12) hours += 12;
+
+      return { hours, minutes };
+    }
+
+    function getZonedParts(date, timeZone) {
+      const parts = new Intl.DateTimeFormat("en-US", {
+        timeZone,
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: false
+      }).formatToParts(date);
+
+      const obj = {};
+      for (const part of parts) {
+        if (part.type !== "literal") obj[part.type] = part.value;
+      }
+
+      return {
+        year: parseInt(obj.year, 10),
+        month: parseInt(obj.month, 10),
+        day: parseInt(obj.day, 10),
+        hour: parseInt(obj.hour, 10),
+        minute: parseInt(obj.minute, 10)
+      };
+    }
+
+    function zonedDateTimeToDate(dateStr, timeStr, timeZone) {
+      const [year, month, day] = String(dateStr || "").split("-").map(Number);
+      const parsedTime = parseTime12(timeStr);
+      if (!year || !month || !day || !parsedTime) return null;
+
+      let utcGuess = Date.UTC(year, month - 1, day, parsedTime.hours, parsedTime.minutes);
+
+      for (let i = 0; i < 3; i++) {
+        const zoned = getZonedParts(new Date(utcGuess), timeZone);
+        const desiredUtc = Date.UTC(year, month - 1, day, parsedTime.hours, parsedTime.minutes);
+        const zonedUtc = Date.UTC(zoned.year, zoned.month - 1, zoned.day, zoned.hour, zoned.minute);
+        utcGuess += desiredUtc - zonedUtc;
+      }
+
+      return new Date(utcGuess);
+    }
+
+    function formatLocalTime(dateObj) {
+      return dateObj.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+    }
+
+    function formatLocalDateInput(dateObj) {
+      const y = dateObj.getFullYear();
+      const m = String(dateObj.getMonth() + 1).padStart(2, "0");
+      const d = String(dateObj.getDate()).padStart(2, "0");
+      return `${y}-${m}-${d}`;
+    }
+
+    function buildConvertedSchedule(site) {
+      const siteTimeZone = inferTimeZoneFromAddress(site.address);
+
+      if (site.arrival_type === "window") {
+        const startDate = zonedDateTimeToDate(site.date, site.window_start, siteTimeZone);
+        const endDate = zonedDateTimeToDate(site.date, site.window_end, siteTimeZone);
+
+        if (!startDate || !endDate) {
+          return {
+            calendarDate: site.date,
+            localTime: "",
+            localWindowStart: site.window_start,
+            localWindowEnd: site.window_end,
+            displayTime: `${site.window_start} - ${site.window_end}`
+          };
+        }
+
+        return {
+          calendarDate: formatLocalDateInput(startDate),
+          localTime: "",
+          localWindowStart: formatLocalTime(startDate),
+          localWindowEnd: formatLocalTime(endDate),
+          displayTime: `${formatLocalTime(startDate)} - ${formatLocalTime(endDate)}`
+        };
+      }
+
+      const converted = zonedDateTimeToDate(site.date, site.time, siteTimeZone);
+
+      if (!converted) {
+        return {
+          calendarDate: site.date,
+          localTime: site.time,
+          localWindowStart: "",
+          localWindowEnd: "",
+          displayTime: site.time
+        };
+      }
+
+      return {
+        calendarDate: formatLocalDateInput(converted),
+        localTime: formatLocalTime(converted),
+        localWindowStart: "",
+        localWindowEnd: "",
+        displayTime: formatLocalTime(converted)
+      };
+    }
+
+    function getEventsForDate(dateStr) {
+      return eventsCache.filter(event => (event.date || "") === dateStr);
+    }
+
     async function fetchEvents() {
       const response = await fetch(`${API_URL}/events`);
       if (!response.ok) {
         throw new Error("Unable to load calendar events.");
       }
       eventsCache = await response.json();
-    }
-
-    function getEventsForDate(dateStr) {
-      return eventsCache.filter(event => (event.site_date || event.date) === dateStr);
     }
 
     function renderCalendar() {
@@ -1068,6 +1240,12 @@
             `${event.window_start || ""}${event.window_start && event.window_end ? " - " : ""}${event.window_end || ""}` ||
             "No time listed";
 
+          const siteTimeText =
+            event.site_display_time ||
+            event.time ||
+            `${event.window_start || ""}${event.window_start && event.window_end ? " - " : ""}${event.window_end || ""}` ||
+            "No site time listed";
+
           const proposalText = event.project_type === "both"
             ? `IP: ${escapeHtml(event.ip_camera_proposal || "None")} | AC: ${escapeHtml(event.access_control_proposal || "None")}`
             : escapeHtml(event.proposal || "None");
@@ -1077,7 +1255,8 @@
               <h3>${escapeHtml(event.client || "No client")} — ${escapeHtml(event.site || "No site")}</h3>
               <div class="event-meta"><strong>Type:</strong> ${escapeHtml(event.template_type || "No type")}</div>
               <div class="event-meta"><strong>Scope:</strong> ${escapeHtml(event.project_type || "No scope")}</div>
-              <div class="event-meta"><strong>Time:</strong> ${escapeHtml(timeText)}</div>
+              <div class="event-meta"><strong>Your Time:</strong> ${escapeHtml(timeText)}</div>
+              <div class="event-meta"><strong>Site Local Time:</strong> ${escapeHtml(siteTimeText)}</div>
               <div class="event-meta"><strong>Technician:</strong> ${escapeHtml(event.technician || "Not assigned")}</div>
               <div class="event-meta"><strong>Site Contact:</strong> ${escapeHtml(event.contact_name || "None")}</div>
               <div class="event-meta"><strong>Address:</strong> ${escapeHtml(event.address || "No address")}</div>
@@ -1132,11 +1311,25 @@
       document.getElementById("edit_ac_proposal_field").classList.toggle("hidden", !both);
     }
 
+    function siteLocalValuesFromEvent(event) {
+      return {
+        date: event.site_date || event.date || "",
+        time: event.arrival_type === "exact" ? (event.site_display_time || event.time || "") : "",
+        windowStart: event.arrival_type === "window"
+          ? ((event.site_display_time || "").split(" - ")[0] || event.window_start || "")
+          : "",
+        windowEnd: event.arrival_type === "window"
+          ? ((event.site_display_time || "").split(" - ")[1] || event.window_end || "")
+          : ""
+      };
+    }
+
     function openEditModal(eventId) {
       const event = eventsCache.find(e => e.id === eventId);
       if (!event) return;
 
       editingEvent = event;
+      const siteLocal = siteLocalValuesFromEvent(event);
 
       document.getElementById("edit_client").value = event.client || "";
       document.getElementById("edit_site").value = event.site || "";
@@ -1148,11 +1341,11 @@
       document.getElementById("edit_contact_email").value = event.contact_email || "";
       document.getElementById("edit_template_type").value = event.template_type || "Survey";
       document.getElementById("edit_project_type").value = event.project_type || "ip_camera";
-      document.getElementById("edit_date").value = event.site_date || event.date || "";
+      document.getElementById("edit_date").value = siteLocal.date;
       document.getElementById("edit_arrival_type").value = event.arrival_type || "exact";
-      document.getElementById("edit_time").value = event.time || "";
-      document.getElementById("edit_window_start").value = event.window_start || "";
-      document.getElementById("edit_window_end").value = event.window_end || "";
+      document.getElementById("edit_time").value = siteLocal.time;
+      document.getElementById("edit_window_start").value = siteLocal.windowStart;
+      document.getElementById("edit_window_end").value = siteLocal.windowEnd;
       document.getElementById("edit_task_id").value = event.task_id || "";
       document.getElementById("edit_proposal").value = event.proposal || "";
       document.getElementById("edit_ip_camera_clickup_id").value = event.ip_camera_clickup_id || "";
@@ -1171,29 +1364,34 @@
       document.getElementById("edit_modal_overlay").classList.remove("show");
     }
 
-    function buildDisplayTime(arrivalType, time, windowStart, windowEnd) {
-      if (arrivalType === "window") {
-        return `${windowStart || ""}${windowStart && windowEnd ? " - " : ""}${windowEnd || ""}`.trim();
-      }
-      return time || "";
-    }
-
     async function saveEditedEvent() {
       if (!editingEvent) return;
 
       try {
         const projectType = document.getElementById("edit_project_type").value;
         const arrivalType = document.getElementById("edit_arrival_type").value;
-        const date = document.getElementById("edit_date").value;
-        const time = document.getElementById("edit_time").value.trim();
-        const windowStart = document.getElementById("edit_window_start").value.trim();
-        const windowEnd = document.getElementById("edit_window_end").value.trim();
+        const siteDate = document.getElementById("edit_date").value;
+        const siteTime = document.getElementById("edit_time").value.trim();
+        const siteWindowStart = document.getElementById("edit_window_start").value.trim();
+        const siteWindowEnd = document.getElementById("edit_window_end").value.trim();
+        const address = document.getElementById("edit_address").value.trim();
+
+        const siteSchedule = {
+          date: siteDate,
+          address,
+          arrival_type: arrivalType,
+          time: siteTime,
+          window_start: siteWindowStart,
+          window_end: siteWindowEnd
+        };
+
+        const converted = buildConvertedSchedule(siteSchedule);
 
         const updatedEvent = {
           ...editingEvent,
           client: document.getElementById("edit_client").value.trim(),
           site: document.getElementById("edit_site").value.trim(),
-          address: document.getElementById("edit_address").value.trim(),
+          address: address,
           technician: document.getElementById("edit_technician").value.trim(),
           technician_phone: document.getElementById("edit_technician_phone").value.trim(),
           contact_name: document.getElementById("edit_contact_name").value.trim(),
@@ -1201,14 +1399,17 @@
           contact_email: document.getElementById("edit_contact_email").value.trim(),
           template_type: document.getElementById("edit_template_type").value,
           project_type: projectType,
-          date: date,
-          site_date: date,
+          date: converted.calendarDate,
+          site_date: siteDate,
           arrival_type: arrivalType,
-          time: arrivalType === "exact" ? time : "",
-          window_start: arrivalType === "window" ? windowStart : "",
-          window_end: arrivalType === "window" ? windowEnd : "",
-          displayTime: buildDisplayTime(arrivalType, time, windowStart, windowEnd),
-          site_display_time: buildDisplayTime(arrivalType, time, windowStart, windowEnd),
+          time: converted.localTime,
+          window_start: converted.localWindowStart,
+          window_end: converted.localWindowEnd,
+          displayTime: converted.displayTime,
+          site_display_time: arrivalType === "window"
+            ? `${siteWindowStart} - ${siteWindowEnd}`
+            : siteTime,
+          site_timezone: inferTimeZoneFromAddress(address),
           task_id: projectType === "both" ? "" : document.getElementById("edit_task_id").value.trim(),
           proposal: projectType === "both" ? "" : document.getElementById("edit_proposal").value.trim(),
           ip_camera_clickup_id: projectType === "both" ? document.getElementById("edit_ip_camera_clickup_id").value.trim() : "",
@@ -1217,18 +1418,18 @@
           access_control_proposal: projectType === "both" ? document.getElementById("edit_access_control_proposal").value.trim() : ""
         };
 
-        if (!updatedEvent.client || !updatedEvent.site || !updatedEvent.address || !updatedEvent.date) {
-          alert("Please fill out client, site, address, and date.");
+        if (!updatedEvent.client || !updatedEvent.site || !updatedEvent.address || !siteDate) {
+          alert("Please fill out client, site, address, and site date.");
           return;
         }
 
-        if (arrivalType === "exact" && !time) {
-          alert("Please enter a time.");
+        if (arrivalType === "exact" && !siteTime) {
+          alert("Please enter the site local time.");
           return;
         }
 
-        if (arrivalType === "window" && (!windowStart || !windowEnd)) {
-          alert("Please enter both window times.");
+        if (arrivalType === "window" && (!siteWindowStart || !siteWindowEnd)) {
+          alert("Please enter both site local window times.");
           return;
         }
 
@@ -1253,6 +1454,8 @@
 
         closeEditModal();
         await fetchEvents();
+        selectedDate = updatedEvent.date;
+        currentMonthDate = new Date(updatedEvent.date + "T12:00:00");
         renderCalendar();
         renderSelectedDay();
         alert("Event updated.");
