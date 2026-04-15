@@ -8,12 +8,10 @@
     :root {
       --svs-dark: #243746;
       --svs-blue: #49697c;
-      --svs-accent: #6f8ea0;
       --svs-soft: #edf3f6;
       --svs-border: #c7d4dc;
       --text: #1f2a33;
       --muted: #647784;
-      --white: #ffffff;
       --shadow: 0 14px 34px rgba(36, 55, 70, 0.12);
     }
 
@@ -277,7 +275,7 @@
         <div class="form-grid">
           <div class="field">
             <label for="project_type">Project Type</label>
-            <select id="project_type" onchange="toggleAllProjectTypeFields()">
+            <select id="project_type">
               <option value="ip_camera">IP Camera</option>
               <option value="access_control">Access Control</option>
               <option value="both">IP Camera + Access Control</option>
@@ -368,34 +366,9 @@
               <input id="address_1">
             </div>
 
-            <div class="field full single-scope-field-1">
+            <div class="field full">
               <label for="clickup_task_id_1">ClickUp ID</label>
               <input id="clickup_task_id_1">
-            </div>
-
-            <div class="field full single-scope-field-1">
-              <label for="proposal_1">Proposal #</label>
-              <input id="proposal_1">
-            </div>
-
-            <div class="field full both-scope-field-1 hidden">
-              <label for="ip_camera_clickup_id_1">IP Camera ClickUp ID</label>
-              <input id="ip_camera_clickup_id_1">
-            </div>
-
-            <div class="field full both-scope-field-1 hidden">
-              <label for="access_control_clickup_id_1">Access Control ClickUp ID</label>
-              <input id="access_control_clickup_id_1">
-            </div>
-
-            <div class="field full both-scope-field-1 hidden">
-              <label for="ip_camera_proposal_1">IP Camera Proposal #</label>
-              <input id="ip_camera_proposal_1">
-            </div>
-
-            <div class="field full both-scope-field-1 hidden">
-              <label for="access_control_proposal_1">Access Control Proposal #</label>
-              <input id="access_control_proposal_1">
             </div>
           </div>
         </div>
@@ -461,34 +434,9 @@
               <input id="address_2">
             </div>
 
-            <div class="field full single-scope-field-2">
+            <div class="field full">
               <label for="clickup_task_id_2">ClickUp ID</label>
               <input id="clickup_task_id_2">
-            </div>
-
-            <div class="field full single-scope-field-2">
-              <label for="proposal_2">Proposal #</label>
-              <input id="proposal_2">
-            </div>
-
-            <div class="field full both-scope-field-2 hidden">
-              <label for="ip_camera_clickup_id_2">IP Camera ClickUp ID</label>
-              <input id="ip_camera_clickup_id_2">
-            </div>
-
-            <div class="field full both-scope-field-2 hidden">
-              <label for="access_control_clickup_id_2">Access Control ClickUp ID</label>
-              <input id="access_control_clickup_id_2">
-            </div>
-
-            <div class="field full both-scope-field-2 hidden">
-              <label for="ip_camera_proposal_2">IP Camera Proposal #</label>
-              <input id="ip_camera_proposal_2">
-            </div>
-
-            <div class="field full both-scope-field-2 hidden">
-              <label for="access_control_proposal_2">Access Control Proposal #</label>
-              <input id="access_control_proposal_2">
             </div>
           </div>
         </div>
@@ -521,7 +469,7 @@
         </datalist>
 
         <div class="help-box">
-          This fixes the date format and uses the site’s local time zone to decide whether the greeting should say morning, afternoon, or evening.
+          Enter the site’s local time here. Service calls do not use proposal numbers.
         </div>
 
         <div class="actions">
@@ -608,22 +556,6 @@
       document.getElementById("site2_card").classList.toggle("hidden", !showSecond);
     }
 
-    function toggleScopeFieldsForSite(siteNumber, isBoth) {
-      document.querySelectorAll(`.single-scope-field-${siteNumber}`).forEach(el => {
-        el.classList.toggle("hidden", isBoth);
-      });
-
-      document.querySelectorAll(`.both-scope-field-${siteNumber}`).forEach(el => {
-        el.classList.toggle("hidden", !isBoth);
-      });
-    }
-
-    function toggleAllProjectTypeFields() {
-      const isBoth = document.getElementById("project_type").value === "both";
-      toggleScopeFieldsForSite(1, isBoth);
-      toggleScopeFieldsForSite(2, isBoth);
-    }
-
     function formatPrettyDate(dateStr) {
       if (!dateStr) return "";
       const dt = new Date(dateStr + "T12:00:00");
@@ -688,10 +620,123 @@
       }).format(new Date());
 
       const hour = parseInt(localHourString, 10);
-
       if (hour < 12) return "morning";
       if (hour < 17) return "afternoon";
       return "evening";
+    }
+
+    function parseTime12(timeString) {
+      const match = String(timeString || "").trim().match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+      if (!match) return null;
+
+      let hours = parseInt(match[1], 10);
+      const minutes = parseInt(match[2], 10);
+      const meridiem = match[3].toUpperCase();
+
+      if (meridiem === "AM" && hours === 12) hours = 0;
+      if (meridiem === "PM" && hours !== 12) hours += 12;
+
+      return { hours, minutes };
+    }
+
+    function getZonedParts(date, timeZone) {
+      const parts = new Intl.DateTimeFormat("en-US", {
+        timeZone,
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: false
+      }).formatToParts(date);
+
+      const obj = {};
+      for (const part of parts) {
+        if (part.type !== "literal") obj[part.type] = part.value;
+      }
+
+      return {
+        year: parseInt(obj.year, 10),
+        month: parseInt(obj.month, 10),
+        day: parseInt(obj.day, 10),
+        hour: parseInt(obj.hour, 10),
+        minute: parseInt(obj.minute, 10)
+      };
+    }
+
+    function zonedDateTimeToDate(dateStr, timeStr, timeZone) {
+      const [year, month, day] = String(dateStr || "").split("-").map(Number);
+      const parsedTime = parseTime12(timeStr);
+      if (!year || !month || !day || !parsedTime) return null;
+
+      let utcGuess = Date.UTC(year, month - 1, day, parsedTime.hours, parsedTime.minutes);
+
+      for (let i = 0; i < 3; i++) {
+        const zoned = getZonedParts(new Date(utcGuess), timeZone);
+        const desiredUtc = Date.UTC(year, month - 1, day, parsedTime.hours, parsedTime.minutes);
+        const zonedUtc = Date.UTC(zoned.year, zoned.month - 1, zoned.day, zoned.hour, zoned.minute);
+        utcGuess += desiredUtc - zonedUtc;
+      }
+
+      return new Date(utcGuess);
+    }
+
+    function formatLocalTime(dateObj) {
+      return dateObj.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+    }
+
+    function formatLocalDateInput(dateObj) {
+      const y = dateObj.getFullYear();
+      const m = String(dateObj.getMonth() + 1).padStart(2, "0");
+      const d = String(dateObj.getDate()).padStart(2, "0");
+      return `${y}-${m}-${d}`;
+    }
+
+    function buildConvertedSchedule(site) {
+      const siteTimeZone = inferTimeZoneFromAddress(site.address);
+
+      if (site.arrival_type === "window") {
+        const startDate = zonedDateTimeToDate(site.date, site.window_start, siteTimeZone);
+        const endDate = zonedDateTimeToDate(site.date, site.window_end, siteTimeZone);
+
+        if (!startDate || !endDate) {
+          return {
+            calendarDate: site.date,
+            localTime: "",
+            localWindowStart: site.window_start,
+            localWindowEnd: site.window_end,
+            displayTime: `${site.window_start} - ${site.window_end}`
+          };
+        }
+
+        return {
+          calendarDate: formatLocalDateInput(startDate),
+          localTime: "",
+          localWindowStart: formatLocalTime(startDate),
+          localWindowEnd: formatLocalTime(endDate),
+          displayTime: `${formatLocalTime(startDate)} - ${formatLocalTime(endDate)}`
+        };
+      }
+
+      const converted = zonedDateTimeToDate(site.date, site.time, siteTimeZone);
+
+      if (!converted) {
+        return {
+          calendarDate: site.date,
+          localTime: site.time,
+          localWindowStart: "",
+          localWindowEnd: "",
+          displayTime: site.time
+        };
+      }
+
+      return {
+        calendarDate: formatLocalDateInput(converted),
+        localTime: formatLocalTime(converted),
+        localWindowStart: "",
+        localWindowEnd: "",
+        displayTime: formatLocalTime(converted)
+      };
     }
 
     function getScopeLabel(projectType) {
@@ -723,17 +768,7 @@
       return `${formatPrettyDate(site.date)} at ${site.time} (Local Time)`;
     }
 
-    function buildProposalBlock(site, projectType) {
-      if (projectType === "both") {
-        return `IP Camera Proposal #: ${site.ip_camera_proposal}
-Access Control Proposal #: ${site.access_control_proposal}`;
-      }
-      return `Proposal #: ${site.proposal}`;
-    }
-
-    function getSiteData(siteNumber, projectType) {
-      const isBoth = projectType === "both";
-
+    function getSiteData(siteNumber) {
       return {
         date: document.getElementById(`date_${siteNumber}`).value.trim(),
         arrival_type: document.getElementById(`arrival_type_${siteNumber}`).value,
@@ -746,16 +781,11 @@ Access Control Proposal #: ${site.access_control_proposal}`;
         client: document.getElementById(`client_${siteNumber}`).value.trim(),
         site: document.getElementById(`site_${siteNumber}`).value.trim(),
         address: document.getElementById(`address_${siteNumber}`).value.trim(),
-        task_id: isBoth ? "" : document.getElementById(`clickup_task_id_${siteNumber}`).value.trim(),
-        proposal: isBoth ? "" : document.getElementById(`proposal_${siteNumber}`).value.trim(),
-        ip_camera_clickup_id: isBoth ? document.getElementById(`ip_camera_clickup_id_${siteNumber}`).value.trim() : "",
-        access_control_clickup_id: isBoth ? document.getElementById(`access_control_clickup_id_${siteNumber}`).value.trim() : "",
-        ip_camera_proposal: isBoth ? document.getElementById(`ip_camera_proposal_${siteNumber}`).value.trim() : "",
-        access_control_proposal: isBoth ? document.getElementById(`access_control_proposal_${siteNumber}`).value.trim() : ""
+        task_id: document.getElementById(`clickup_task_id_${siteNumber}`).value.trim()
       };
     }
 
-    function validateSite(site, projectType, label) {
+    function validateSite(site, label) {
       if (!site.date || !site.contact_name || !site.client || !site.site || !site.address) {
         throw new Error(`${label}: please fill out all required fields.`);
       }
@@ -768,20 +798,8 @@ Access Control Proposal #: ${site.access_control_proposal}`;
         throw new Error(`${label}: please enter both window times.`);
       }
 
-      if (projectType === "both") {
-        if (!site.ip_camera_clickup_id || !site.access_control_clickup_id) {
-          throw new Error(`${label}: please enter both ClickUp IDs.`);
-        }
-        if (!site.ip_camera_proposal || !site.access_control_proposal) {
-          throw new Error(`${label}: please enter both proposal numbers.`);
-        }
-      } else {
-        if (!site.task_id) {
-          throw new Error(`${label}: please enter the ClickUp ID.`);
-        }
-        if (!site.proposal) {
-          throw new Error(`${label}: please enter the proposal number.`);
-        }
+      if (!site.task_id) {
+        throw new Error(`${label}: please enter the ClickUp ID.`);
       }
     }
 
@@ -807,8 +825,6 @@ Phone: ${site.contact_phone}
 Client: ${site.client}
 Site: ${site.site}
 Project Address: ${site.address}
-
-${buildProposalBlock(site, projectType)}
 
 If any of the information above needs correction, please email me as soon as possible.
 
@@ -841,8 +857,6 @@ Client: ${site1.client}
 Site: ${site1.site}
 Project Address: ${site1.address}
 
-${buildProposalBlock(site1, projectType)}
-
 Site 2
 Technician arrival: ${buildArrivalText(site2)}
 
@@ -858,17 +872,13 @@ Client: ${site2.client}
 Site: ${site2.site}
 Project Address: ${site2.address}
 
-${buildProposalBlock(site2, projectType)}
-
 If any of the information above needs correction, please email me as soon as possible.
 
 Thank you,`;
     }
 
     async function saveEventForSite(site, projectType, techName, techPhone) {
-      const displayTime = site.arrival_type === "window"
-        ? `${site.window_start} - ${site.window_end}`
-        : site.time;
+      const converted = buildConvertedSchedule(site);
 
       const eventPayload = {
         client: site.client,
@@ -879,17 +889,19 @@ Thank you,`;
         contact_name: site.contact_name,
         contact_email: site.contact_email,
         contact_phone: site.contact_phone,
-        proposal: site.proposal,
+        proposal: "",
         task_id: site.task_id,
         template_type: "Service",
         project_type: projectType,
-        date: site.date,
+        date: converted.calendarDate,
         site_date: site.date,
-        time: site.arrival_type === "exact" ? site.time : "",
-        window_start: site.arrival_type === "window" ? site.window_start : "",
-        window_end: site.arrival_type === "window" ? site.window_end : "",
-        displayTime: displayTime,
-        site_display_time: displayTime,
+        time: converted.localTime,
+        window_start: converted.localWindowStart,
+        window_end: converted.localWindowEnd,
+        displayTime: converted.displayTime,
+        site_display_time: site.arrival_type === "window"
+          ? `${site.window_start} - ${site.window_end}`
+          : site.time,
         site_timezone: inferTimeZoneFromAddress(site.address),
         site_timezone_label: "",
         arrival_type: site.arrival_type,
@@ -897,10 +909,10 @@ Thank you,`;
         checked_out: false,
         check_in_time: "",
         check_out_time: "",
-        ip_camera_clickup_id: site.ip_camera_clickup_id,
-        access_control_clickup_id: site.access_control_clickup_id,
-        ip_camera_proposal: site.ip_camera_proposal,
-        access_control_proposal: site.access_control_proposal
+        ip_camera_clickup_id: "",
+        access_control_clickup_id: "",
+        ip_camera_proposal: "",
+        access_control_proposal: ""
       };
 
       const res = await fetch(`${API_URL}/events`, {
@@ -928,15 +940,15 @@ Thank you,`;
           return;
         }
 
-        const site1 = getSiteData(1, projectType);
-        validateSite(site1, projectType, "Site 1");
+        const site1 = getSiteData(1);
+        validateSite(site1, "Site 1");
 
         let subject = "";
         let body = "";
 
         if (isMulti) {
-          const site2 = getSiteData(2, projectType);
-          validateSite(site2, projectType, "Site 2");
+          const site2 = getSiteData(2);
+          validateSite(site2, "Site 2");
 
           subject = `${getSubjectPrefix(projectType, true)} for ${site1.client}`;
           body = buildMultiSiteEmail(projectType, techName, techPhone, site1, site2);
@@ -985,7 +997,6 @@ Thank you,`;
       toggleArrivalType(1);
       toggleArrivalType(2);
       toggleSiteCount();
-      toggleAllProjectTypeFields();
     }
 
     initPage();
