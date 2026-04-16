@@ -19,22 +19,22 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 FRONTEND_DIR = os.path.join(BASE_DIR, "frontend")
 DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "svs_dispatch.db")
 
-CLICKUP_WEBHOOK_URL = os.environ.get(
-    "CLICKUP_WEBHOOK_URL",
-    "https://hook.us1.make.com/tzham3njl79ucri6lmsd9imvecnft9xq"
-)
-CLICKUP_DELETE_WEBHOOK_URL = os.environ.get("CLICKUP_DELETE_WEBHOOK_URL", "")
-
 # -----------------------------
-# DRIVE / ASANA CONFIG
+# CONFIG
 # -----------------------------
 ASANA_TOKEN = os.environ.get("ASANA_TOKEN", "")
 ASANA_PROJECT_ID = "1206280340344209"
 ASANA_SECTION_ID = "1206281947668069"
-GOOGLE_DRIVE_PARENT_FOLDER_ID = "15ZdGKmUFolQZ2RKnfYsvz8btoc-dOK_P"
-GOOGLE_SERVICE_ACCOUNT_FILE = os.path.join(
-    os.path.dirname(os.path.abspath(__file__)),
-    "google-service-account.json"
+
+CLICKUP_API_TOKEN = os.environ.get("CLICKUP_API_TOKEN", "")
+
+GOOGLE_DRIVE_PARENT_FOLDER_ID = os.environ.get(
+    "GOOGLE_DRIVE_PARENT_FOLDER_ID",
+    "15ZdGKmUFoIQZ2RKnfYsvz8btoc-dOK_P"
+)
+GOOGLE_SERVICE_ACCOUNT_FILE = os.environ.get(
+    "GOOGLE_SERVICE_ACCOUNT_FILE",
+    os.path.join(os.path.dirname(os.path.abspath(__file__)), "google-service-account.json")
 )
 GOOGLE_DRIVE_SCOPES = ["https://www.googleapis.com/auth/drive"]
 
@@ -440,40 +440,49 @@ If any of the information above needs correction, please email me as soon as pos
 Thank you,"""
 
 
-def extract_comment_id(response):
+# -----------------------------
+# CLICKUP API HELPERS
+# -----------------------------
+def clickup_headers():
+    return {
+        "Authorization": CLICKUP_API_TOKEN,
+        "Content-Type": "application/json"
+    }
+
+
+def send_clickup_comment(task_id: str, comment_text: str):
+    if not task_id:
+        return None, ""
+
+    url = f"https://api.clickup.com/api/v2/task/{task_id}/comment"
+    payload = {
+        "comment_text": comment_text,
+        "notify_all": False
+    }
+
+    response = requests.post(url, headers=clickup_headers(), json=payload, timeout=30)
+
     try:
         data = response.json()
     except Exception:
-        return ""
+        data = {}
 
+    comment_id = ""
     if isinstance(data, dict):
-        if data.get("comment_id"):
-            return str(data.get("comment_id"))
         if data.get("id"):
-            return str(data.get("id"))
-        if isinstance(data.get("comment"), dict) and data["comment"].get("id"):
-            return str(data["comment"].get("id"))
-    return ""
+            comment_id = str(data.get("id"))
+        elif isinstance(data.get("comment"), dict) and data["comment"].get("id"):
+            comment_id = str(data["comment"]["id"])
 
-
-def send_clickup_comment(task_id: str, body: dict):
-    if not task_id:
-        return None, ""
-    payload = dict(body)
-    payload["task_id"] = task_id
-    response = requests.post(CLICKUP_WEBHOOK_URL, json=payload, timeout=20)
-    comment_id = extract_comment_id(response)
     return response, comment_id
 
 
-def delete_clickup_comment(task_id: str, comment_id: str):
-    if not CLICKUP_DELETE_WEBHOOK_URL or not task_id or not comment_id:
+def delete_clickup_comment(comment_id: str):
+    if not comment_id:
         return None
-    payload = {
-        "task_id": task_id,
-        "comment_id": comment_id
-    }
-    return requests.post(CLICKUP_DELETE_WEBHOOK_URL, json=payload, timeout=20)
+
+    url = f"https://api.clickup.com/api/v2/comment/{comment_id}"
+    return requests.delete(url, headers=clickup_headers(), timeout=30)
 
 
 # -----------------------------
@@ -737,6 +746,37 @@ def test_asana():
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/test-clickup")
+def test_clickup():
+    url = "https://api.clickup.com/api/v2/team"
+    response = requests.get(url, headers=clickup_headers(), timeout=30)
+    try:
+        return {
+            "status_code": response.status_code,
+            "response": response.json()
+        }
+    except Exception:
+        return {
+            "status_code": response.status_code,
+            "response_text": response.text
+        }
+
+
+@app.get("/test-clickup-comment/{task_id}")
+def test_clickup_comment(task_id: str):
+    response, comment_id = send_clickup_comment(task_id, "Test comment from SVS bot.")
+    try:
+        data = response.json() if response is not None else None
+    except Exception:
+        data = {"raw_text": response.text if response is not None else ""}
+
+    return {
+        "status_code": response.status_code if response else None,
+        "comment_id": comment_id,
+        "response": data
+    }
 
 
 # -----------------------------
@@ -1076,15 +1116,6 @@ def send_checkin(payload: CheckinPayload):
     event_data = dict(event)
     comment = f"Status Update: The technician is on-site and checked in at {payload.check_in_time} (Local Time)."
 
-    body = {
-        "type": "checkin",
-        "comment": comment,
-        "client": payload.client,
-        "site": payload.site,
-        "technician": payload.technician,
-        "check_in_time": payload.check_in_time
-    }
-
     try:
         sent_to = []
 
@@ -1098,18 +1129,18 @@ def send_checkin(payload: CheckinPayload):
             ac_id = event_data.get("access_control_clickup_id") or ""
 
             if ip_id:
-                _, ip_comment_id = send_clickup_comment(ip_id, body)
+                _, ip_comment_id = send_clickup_comment(ip_id, comment)
                 ip_checkin_comment_id = ip_comment_id or ""
                 sent_to.append(f"IP Camera ({ip_id})")
 
             if ac_id:
-                _, ac_comment_id = send_clickup_comment(ac_id, body)
+                _, ac_comment_id = send_clickup_comment(ac_id, comment)
                 ac_checkin_comment_id = ac_comment_id or ""
                 sent_to.append(f"Access Control ({ac_id})")
         else:
             task_id = payload.task_id or event_data.get("task_id") or ""
             if task_id:
-                _, single_comment_id = send_clickup_comment(task_id, body)
+                _, single_comment_id = send_clickup_comment(task_id, comment)
                 ip_checkin_comment_id = single_comment_id or ""
                 sent_to.append(task_id)
 
@@ -1162,15 +1193,6 @@ def send_checkout(payload: CheckoutPayload):
         f"{payload.check_out_time} (Local Time). Survey documents will be available once they have been processed."
     )
 
-    body = {
-        "type": "checkout",
-        "comment": comment,
-        "client": payload.client,
-        "site": payload.site,
-        "technician": payload.technician,
-        "check_out_time": payload.check_out_time
-    }
-
     try:
         sent_to = []
 
@@ -1184,18 +1206,18 @@ def send_checkout(payload: CheckoutPayload):
             ac_id = event_data.get("access_control_clickup_id") or ""
 
             if ip_id:
-                _, ip_comment_id = send_clickup_comment(ip_id, body)
+                _, ip_comment_id = send_clickup_comment(ip_id, comment)
                 ip_checkout_comment_id = ip_comment_id or ""
                 sent_to.append(f"IP Camera ({ip_id})")
 
             if ac_id:
-                _, ac_comment_id = send_clickup_comment(ac_id, body)
+                _, ac_comment_id = send_clickup_comment(ac_id, comment)
                 ac_checkout_comment_id = ac_comment_id or ""
                 sent_to.append(f"Access Control ({ac_id})")
         else:
             task_id = payload.task_id or event_data.get("task_id") or ""
             if task_id:
-                _, single_comment_id = send_clickup_comment(task_id, body)
+                _, single_comment_id = send_clickup_comment(task_id, comment)
                 ip_checkout_comment_id = single_comment_id or ""
                 sent_to.append(task_id)
 
@@ -1247,50 +1269,42 @@ def reset_bot_comments(payload: ResetBotCommentsPayload):
     try:
         project_type = (event_data.get("project_type") or "").lower()
 
-        if CLICKUP_DELETE_WEBHOOK_URL:
-            if project_type == "both":
-                ip_task_id = event_data.get("ip_camera_clickup_id") or ""
-                ac_task_id = event_data.get("access_control_clickup_id") or ""
-
-                if event_data.get("ip_checkin_comment_id"):
-                    delete_clickup_comment(ip_task_id, event_data.get("ip_checkin_comment_id"))
-                    deleted.append("IP check-in")
-                else:
-                    skipped.append("IP check-in")
-
-                if event_data.get("ac_checkin_comment_id"):
-                    delete_clickup_comment(ac_task_id, event_data.get("ac_checkin_comment_id"))
-                    deleted.append("AC check-in")
-                else:
-                    skipped.append("AC check-in")
-
-                if event_data.get("ip_checkout_comment_id"):
-                    delete_clickup_comment(ip_task_id, event_data.get("ip_checkout_comment_id"))
-                    deleted.append("IP check-out")
-                else:
-                    skipped.append("IP check-out")
-
-                if event_data.get("ac_checkout_comment_id"):
-                    delete_clickup_comment(ac_task_id, event_data.get("ac_checkout_comment_id"))
-                    deleted.append("AC check-out")
-                else:
-                    skipped.append("AC check-out")
+        if project_type == "both":
+            if event_data.get("ip_checkin_comment_id"):
+                delete_clickup_comment(event_data.get("ip_checkin_comment_id"))
+                deleted.append("IP check-in")
             else:
-                task_id = event_data.get("task_id") or ""
+                skipped.append("IP check-in")
 
-                if event_data.get("ip_checkin_comment_id"):
-                    delete_clickup_comment(task_id, event_data.get("ip_checkin_comment_id"))
-                    deleted.append("check-in")
-                else:
-                    skipped.append("check-in")
+            if event_data.get("ac_checkin_comment_id"):
+                delete_clickup_comment(event_data.get("ac_checkin_comment_id"))
+                deleted.append("AC check-in")
+            else:
+                skipped.append("AC check-in")
 
-                if event_data.get("ip_checkout_comment_id"):
-                    delete_clickup_comment(task_id, event_data.get("ip_checkout_comment_id"))
-                    deleted.append("check-out")
-                else:
-                    skipped.append("check-out")
+            if event_data.get("ip_checkout_comment_id"):
+                delete_clickup_comment(event_data.get("ip_checkout_comment_id"))
+                deleted.append("IP check-out")
+            else:
+                skipped.append("IP check-out")
+
+            if event_data.get("ac_checkout_comment_id"):
+                delete_clickup_comment(event_data.get("ac_checkout_comment_id"))
+                deleted.append("AC check-out")
+            else:
+                skipped.append("AC check-out")
         else:
-            skipped.append("delete webhook not configured")
+            if event_data.get("ip_checkin_comment_id"):
+                delete_clickup_comment(event_data.get("ip_checkin_comment_id"))
+                deleted.append("check-in")
+            else:
+                skipped.append("check-in")
+
+            if event_data.get("ip_checkout_comment_id"):
+                delete_clickup_comment(event_data.get("ip_checkout_comment_id"))
+                deleted.append("check-out")
+            else:
+                skipped.append("check-out")
 
         cur.execute("""
             UPDATE events
@@ -1395,9 +1409,10 @@ def serve_checkin():
 def serve_technicians():
     return FileResponse(os.path.join(FRONTEND_DIR, "technicians.html"))
 
+
 @app.get("/scw-requests.html")
 def serve_scw_requests():
-    return FileResponse(os.path.join(FRONTEND_DIR, "scw-requests.html"))    
+    return FileResponse(os.path.join(FRONTEND_DIR, "scw-requests.html"))
 
 
 @app.get("/")
