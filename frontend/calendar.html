@@ -902,7 +902,7 @@
   </div>
 
   <script>
-    const API_URL = "http://66.42.117.96:8000";
+    const API_URL = window.location.origin;
     let eventsCache = [];
     let currentMonthDate = new Date();
     let selectedDate = formatDateLocal(new Date());
