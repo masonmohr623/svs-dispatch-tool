@@ -820,12 +820,12 @@ def build_survey_draft_from_task(task_id: str, task: dict):
     dropbox_photos_link = get_custom_field_value(custom_fields, "Dropbox Photos Link")
 
     try:
-        next_project_number = get_next_project_number()
-    except Exception:
-        next_project_number = "ERROR"
+    next_project_number = get_next_project_number()
+except Exception:
+    next_project_number = ""
 
-    display_site_name = build_request_display_name(site_name, city, state)
-    full_name = f"{next_project_number} Survey - {display_site_name}"
+display_site_name = build_request_display_name(site_name, city, state)
+full_name = f"Pending Number - {display_site_name}"
 
     attachment_list = []
     for att in attachments:
@@ -890,12 +890,12 @@ def build_service_draft_from_task(task_id: str, task: dict):
     dropbox_photos_link = get_custom_field_value(custom_fields, "Dropbox Photos Link")
 
     try:
-        next_project_number = get_next_project_number()
-    except Exception:
-        next_project_number = "ERROR"
+    next_project_number = get_next_project_number()
+except Exception:
+    next_project_number = ""
 
-    display_site_name = build_request_display_name(site_name, city, state)
-    full_name = f"{next_project_number} Service - {display_site_name}"
+display_site_name = build_request_display_name(site_name, city, state)
+full_name = f"Pending Number - {display_site_name}"
 
     attachment_list = []
     for att in attachments:
