@@ -132,20 +132,6 @@
       color: var(--svs-dark);
     }
 
-    .subcard {
-      background: #fbfdfe;
-      border: 1px solid var(--svs-border);
-      border-radius: 18px;
-      padding: 18px;
-      margin-top: 14px;
-    }
-
-    .subcard h3 {
-      margin: 0 0 14px;
-      font-size: 18px;
-      color: var(--svs-dark);
-    }
-
     .form-grid {
       display: grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -248,7 +234,7 @@
 
       <div class="topbar-right">
         <button class="nav-btn" onclick="goTo('index.html')">Home</button>
-        <button class="nav-btn" onclick="goTo('dispatch.html')">Survey</button>
+        <button class="nav-btn" onclick="goTo('dispatch.html')">Dispatch</button>
         <button class="nav-btn" onclick="goTo('service.html')">Service</button>
         <button class="nav-btn" onclick="goTo('installation.html')">Installation</button>
         <button class="nav-btn" onclick="goTo('calendar.html')">Calendar</button>
@@ -261,47 +247,29 @@
       <div class="panel">
         <h2>Template Details</h2>
 
-        <div class="section-title">Email Type</div>
+        <div class="section-title">Schedule</div>
         <div class="form-grid">
           <div class="field">
-            <label for="template_type">Template Type</label>
-            <select id="template_type">
-              <option value="Site Survey Walkthrough">Site Survey Walkthrough</option>
-              <option value="Service Call">Service Call</option>
+            <label for="request_type">Request Type</label>
+            <select id="request_type">
+              <option value="survey">Site Survey Walkthrough</option>
+              <option value="service">Service Call</option>
             </select>
           </div>
 
           <div class="field">
-            <label for="greeting">Greeting</label>
-            <select id="greeting">
-              <option value="morning">morning</option>
-              <option value="afternoon">afternoon</option>
-            </select>
+            <label for="date_1">Date</label>
+            <input type="date" id="date_1">
           </div>
-        </div>
 
-        <div class="section-title">Schedule</div>
-        <div class="subcard">
-          <div class="form-grid">
-            <div class="field">
-              <label for="date">Date</label>
-              <input type="date" id="date">
-            </div>
-
-            <div class="field">
-              <label for="time">Time</label>
-              <input list="time-options" id="time" placeholder="Example: 1:00 PM">
-            </div>
+          <div class="field">
+            <label for="time_1">Time</label>
+            <input list="time-options" id="time_1" placeholder="Example: 1:00 PM">
           </div>
-        </div>
 
-        <div class="section-title">Client Information</div>
-        <div class="subcard">
-          <div class="form-grid">
-            <div class="field full">
-              <label for="client_name">Client Name</label>
-              <input id="client_name">
-            </div>
+          <div class="field">
+            <label for="client_1">Client Name</label>
+            <input id="client_1">
           </div>
         </div>
 
@@ -333,8 +301,7 @@
         </datalist>
 
         <div class="help-box">
-          This template generates a client-facing confirmation request email with the subject line formatted as:
-          *Please Confirm* SCW (Site Survey Walkthrough or SCW Service Call) on (Day) (Month) (Date) at (Time) Local Time.
+          This template does not add anything to the calendar. It only generates the subject and email body for you.
         </div>
 
         <div class="actions">
@@ -372,36 +339,44 @@
       return `${weekday}, ${month} ${day}${suffix}`;
     }
 
-    function formatSubjectDate(dateStr) {
-      if (!dateStr) return "";
-      const dt = new Date(dateStr + "T12:00:00");
-      const weekday = dt.toLocaleDateString("en-US", { weekday: "long" });
-      const month = dt.toLocaleDateString("en-US", { month: "long" });
-      const day = dt.getDate();
-      return `${weekday} ${month} ${day}`;
+    function getMorningText() {
+      const hour = new Date().getHours();
+      if (hour < 12) return "morning";
+      if (hour < 17) return "afternoon";
+      return "evening";
     }
 
     function generateTemplate() {
-      const templateType = document.getElementById("template_type").value.trim();
-      const greeting = document.getElementById("greeting").value.trim();
-      const date = document.getElementById("date").value.trim();
-      const time = document.getElementById("time").value.trim();
-      const clientName = document.getElementById("client_name").value.trim();
+      const requestType = document.getElementById("request_type").value;
+      const date = document.getElementById("date_1").value.trim();
+      const time = document.getElementById("time_1").value.trim();
+      const clientName = document.getElementById("client_1").value.trim();
 
       if (!date || !time || !clientName) {
         alert("Please fill out the date, time, and client name.");
         return;
       }
 
-      const subjectType = templateType === "Service Call"
-        ? "SCW Service Call"
-        : "SCW Site Survey Walkthrough";
+      const dt = new Date(date + "T12:00:00");
+      const dayText = dt.toLocaleDateString("en-US", { weekday: "long" });
+      const monthText = dt.toLocaleDateString("en-US", { month: "long" });
+      const dateText = dt.getDate();
+      const prettyDate = formatPrettyDate(date);
+      const greeting = getMorningText();
 
-      const subject = `*Please Confirm* ${subjectType} on ${formatSubjectDate(date)} at ${time} Local Time`;
+      const subjectRequestLabel = requestType === "service"
+        ? "Service Call"
+        : "Site Survey Walkthrough";
+
+      const bodyRequestLabel = requestType === "service"
+        ? "Service Call"
+        : "IP Camera Site Survey Walkthrough";
+
+      const subject = `*Please Confirm* SCW ${subjectRequestLabel} on ${dayText} ${monthText} ${dateText} at ${time} Local time`;
 
       const body = `Good ${greeting} all,
 
-I am reaching out on behalf of Security Camera Warehouse. We have your site scheduled on ${formatPrettyDate(date)} at ${time} for the IP Camera Site Survey for ${clientName}. Please confirm your availability for this date and time. Also, if there is an alternate point of contact for the site, please provide their name and number.
+I am reaching out on behalf of Security Camera Warehouse. We have your site scheduled on ${prettyDate} at ${time} for the ${bodyRequestLabel} for ${clientName}. Please confirm your availability for this date and time. Also, if there is an alternate point of contact for the site, please provide their name and number.
 
 Thank you,`;
 
