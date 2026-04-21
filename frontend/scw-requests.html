@@ -6,25 +6,21 @@
   <title>SCW Job Requests</title>
   <style>
     :root {
-      --bg: #f4f7fb;
-      --panel: #ffffff;
-      --border: #dde5ed;
-      --text: #1f2a33;
-      --muted: #6b7785;
-      --svs-dark: #243746;
-      --svs-blue: #49697c;
-      --green: #16a34a;
-      --green-soft: #dcfce7;
-      --blue: #2563eb;
-      --blue-soft: #dbeafe;
-      --orange: #ea580c;
-      --orange-soft: #ffedd5;
+      --bg: #f5f7fb;
+      --card: #ffffff;
+      --text: #1f2937;
+      --muted: #6b7280;
+      --border: #e5e7eb;
+      --purple: #7c6cf2;
+      --purple-dark: #6958ea;
+      --green: #25a56a;
+      --green-dark: #1f8a59;
       --red: #dc2626;
-      --red-soft: #fee2e2;
-      --shadow: 0 16px 36px rgba(31, 41, 51, 0.08);
-      --radius-lg: 22px;
-      --radius-md: 16px;
-      --radius-sm: 12px;
+      --red-dark: #b91c1c;
+      --gray: #e5e7eb;
+      --gray-dark: #d1d5db;
+      --shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
+      --radius: 18px;
     }
 
     * {
@@ -33,695 +29,996 @@
 
     body {
       margin: 0;
-      font-family: Arial, Helvetica, sans-serif;
+      font-family: Inter, Arial, sans-serif;
+      background: var(--bg);
       color: var(--text);
-      background:
-        radial-gradient(circle at top left, rgba(73, 105, 124, 0.10), transparent 24%),
-        linear-gradient(180deg, #f8fafc 0%, #f3f6fa 100%);
-      min-height: 100vh;
-    }
-
-    .page {
-      max-width: 1200px;
-      margin: 0 auto;
-      padding: 24px 18px 36px;
     }
 
     .topbar {
       display: flex;
-      align-items: center;
       justify-content: space-between;
+      align-items: center;
       gap: 16px;
-      margin-bottom: 20px;
-      flex-wrap: wrap;
-    }
-
-    .back-btn {
-      border: 1px solid var(--border);
-      background: white;
-      color: var(--svs-dark);
-      border-radius: 14px;
-      padding: 10px 14px;
-      font-size: 14px;
-      font-weight: 700;
-      cursor: pointer;
-    }
-
-    .back-btn:hover {
-      background: #f8fafc;
-    }
-
-    .hero {
-      background: linear-gradient(135deg, rgba(36, 55, 70, 0.96), rgba(73, 105, 124, 0.92));
-      color: white;
-      border-radius: 28px;
-      padding: 24px 26px;
-      box-shadow: var(--shadow);
-      margin-bottom: 20px;
-    }
-
-    .hero h1 {
-      margin: 0 0 8px;
-      font-size: 32px;
-      line-height: 1.08;
-    }
-
-    .hero p {
-      margin: 0;
-      color: rgba(255,255,255,0.84);
-      font-size: 15px;
-      line-height: 1.6;
-      max-width: 760px;
-    }
-
-    .main-grid {
-      display: grid;
-      grid-template-columns: 1fr 0.95fr;
-      gap: 20px;
-      align-items: start;
-    }
-
-    .panel {
-      background: var(--panel);
-      border: 1px solid var(--border);
-      border-radius: var(--radius-lg);
-      box-shadow: var(--shadow);
-      overflow: hidden;
-    }
-
-    .panel-header {
-      padding: 18px 20px 14px;
+      padding: 18px 24px;
+      background: #fff;
       border-bottom: 1px solid var(--border);
-      background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+      position: sticky;
+      top: 0;
+      z-index: 20;
     }
 
-    .panel-header h2 {
+    .topbar-left {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      min-width: 0;
+    }
+
+    .logo {
+      width: 44px;
+      height: 44px;
+      object-fit: contain;
+      border-radius: 10px;
+      background: #fff;
+      flex-shrink: 0;
+    }
+
+    .title-wrap h1 {
       margin: 0;
-      font-size: 22px;
-      color: var(--svs-dark);
+      font-size: 20px;
+      font-weight: 800;
     }
 
-    .panel-header p {
-      margin: 6px 0 0;
-      font-size: 14px;
+    .title-wrap p {
+      margin: 4px 0 0;
+      font-size: 13px;
       color: var(--muted);
     }
 
-    .panel-body {
-      padding: 18px;
-    }
-
-    .form-grid {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 14px;
-    }
-
-    .field {
-      display: grid;
-      gap: 7px;
-    }
-
-    .field.full {
-      grid-column: 1 / -1;
-    }
-
-    label {
-      font-size: 13px;
-      font-weight: 700;
-      color: var(--svs-dark);
-    }
-
-    input,
-    select,
-    textarea {
-      width: 100%;
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 12px 13px;
-      font-size: 14px;
-      color: var(--text);
-      background: white;
-      outline: none;
-    }
-
-    input:focus,
-    select:focus,
-    textarea:focus {
-      border-color: #bfd0dd;
-      box-shadow: 0 0 0 3px rgba(73, 105, 124, 0.08);
-    }
-
-    .actions {
+    .nav-buttons {
       display: flex;
       gap: 10px;
       flex-wrap: wrap;
-      margin-top: 18px;
+      justify-content: flex-end;
+    }
+
+    .nav-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      text-decoration: none;
+      padding: 10px 14px;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: #fff;
+      color: var(--text);
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    .nav-btn:hover {
+      background: #f9fafb;
+    }
+
+    .page {
+      max-width: 1450px;
+      margin: 24px auto;
+      padding: 0 18px 28px;
+    }
+
+    .two-col {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 18px;
+      align-items: start;
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 20px;
+    }
+
+    .panel-header {
+      margin-bottom: 16px;
+    }
+
+    .panel-header h2 {
+      margin: 0 0 5px;
+      font-size: 18px;
+      font-weight: 800;
+    }
+
+    .subtext {
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    .input {
+      width: 100%;
+      padding: 12px 14px;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      font-size: 14px;
+      background: #fff;
+      outline: none;
+    }
+
+    .input:focus {
+      border-color: var(--purple);
+      box-shadow: 0 0 0 3px rgba(124, 108, 242, 0.12);
+    }
+
+    .task-row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    .btn-row {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 12px;
     }
 
     .btn {
-      border: 1px solid var(--border);
-      border-radius: 14px;
-      padding: 12px 16px;
+      border: 0;
+      border-radius: 12px;
+      padding: 11px 14px;
       font-size: 14px;
-      font-weight: 700;
+      font-weight: 800;
       cursor: pointer;
-      background: white;
-      color: var(--svs-dark);
+      white-space: nowrap;
     }
 
-    .btn:hover {
-      background: #f8fafc;
+    .btn-purple {
+      background: var(--purple);
+      color: #fff;
     }
 
-    .btn.primary {
-      background: linear-gradient(135deg, var(--svs-dark), var(--svs-blue));
-      color: white;
-      border: none;
+    .btn-purple:hover {
+      background: var(--purple-dark);
     }
 
-    .btn.green {
-      background: var(--green-soft);
-      color: #166534;
-      border-color: #ccefd9;
+    .btn-green {
+      background: var(--green);
+      color: #fff;
     }
 
-    .btn.blue {
-      background: var(--blue-soft);
-      color: #1d4ed8;
-      border-color: #cfe0ff;
+    .btn-green:hover {
+      background: var(--green-dark);
     }
 
-    .btn.orange {
-      background: var(--orange-soft);
-      color: #c2410c;
-      border-color: #fed7aa;
+    .btn-red {
+      background: var(--red);
+      color: #fff;
     }
 
-    .btn.red {
-      background: var(--red-soft);
-      color: #b91c1c;
-      border-color: #fecaca;
+    .btn-red:hover {
+      background: var(--red-dark);
     }
 
-    .result-card {
-      border: 1px solid var(--border);
-      border-radius: 18px;
-      background: #fbfdff;
-      padding: 16px;
-      display: grid;
+    .btn-gray {
+      background: var(--gray);
+      color: #111827;
+    }
+
+    .btn-gray:hover {
+      background: var(--gray-dark);
+    }
+
+    .status-line {
+      min-height: 18px;
+      font-size: 13px;
+      color: var(--muted);
+      margin-bottom: 12px;
+      white-space: pre-wrap;
+    }
+
+    .scroll-area {
+      max-height: 620px;
+      overflow-y: auto;
+      padding-right: 6px;
+    }
+
+    .scroll-area::-webkit-scrollbar {
+      width: 10px;
+    }
+
+    .scroll-area::-webkit-scrollbar-thumb {
+      background: #d1d5db;
+      border-radius: 999px;
+    }
+
+    .request-list {
+      display: flex;
+      flex-direction: column;
       gap: 14px;
     }
 
-    .result-block {
-      display: grid;
-      gap: 6px;
+    .request-card {
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 16px;
+      background: #fff;
     }
 
-    .result-label {
+    .request-top {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: flex-start;
+      margin-bottom: 10px;
+    }
+
+    .request-title {
+      font-size: 19px;
+      font-weight: 800;
+      line-height: 1.25;
+      margin-bottom: 4px;
+    }
+
+    .request-subtitle {
+      font-size: 13px;
+      color: var(--muted);
+      line-height: 1.45;
+    }
+
+    .badge {
+      padding: 6px 10px;
+      border-radius: 999px;
       font-size: 12px;
       font-weight: 800;
-      text-transform: uppercase;
-      letter-spacing: 0.4px;
-      color: var(--muted);
+      white-space: nowrap;
+      flex-shrink: 0;
     }
 
-    .result-value {
-      font-size: 15px;
-      line-height: 1.55;
-      color: var(--text);
+    .badge-survey {
+      background: rgba(124, 108, 242, 0.12);
+      color: var(--purple-dark);
+    }
+
+    .badge-service {
+      background: rgba(37, 165, 106, 0.12);
+      color: var(--green-dark);
+    }
+
+    .request-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px 20px;
+      margin: 14px 0;
+    }
+
+    .field-label {
+      font-size: 11px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      font-weight: 800;
+      margin-bottom: 4px;
+    }
+
+    .field-value {
+      font-size: 14px;
+      line-height: 1.45;
       word-break: break-word;
     }
 
-    .status-pill {
-      display: inline-flex;
-      align-items: center;
-      width: fit-content;
-      border-radius: 999px;
-      padding: 8px 11px;
-      font-size: 12px;
-      font-weight: 800;
-      border: 1px solid transparent;
+    .links-box {
+      margin-top: 6px;
     }
 
-    .status-idle {
-      background: #f3f4f6;
-      color: #4b5563;
-      border-color: #e5e7eb;
+    .links-list {
+      margin: 6px 0 0 18px;
+      padding: 0;
     }
 
-    .status-success {
-      background: var(--green-soft);
-      color: #166534;
-      border-color: #ccefd9;
+    .links-list li {
+      margin-bottom: 5px;
     }
 
-    .status-error {
-      background: var(--red-soft);
-      color: #b91c1c;
-      border-color: #fecaca;
-    }
-
-    .status-working {
-      background: var(--blue-soft);
-      color: #1d4ed8;
-      border-color: #cfe0ff;
-    }
-
-    .small-note {
-      font-size: 13px;
-      color: var(--muted);
-      line-height: 1.6;
-      margin-top: 12px;
-    }
-
-    .links {
-      display: grid;
-      gap: 10px;
-    }
-
-    .link-row a {
-      color: #1d4ed8;
+    .links-list a {
+      color: var(--purple-dark);
       text-decoration: none;
-      font-weight: 700;
       word-break: break-all;
     }
 
-    .link-row a:hover {
+    .links-list a:hover {
       text-decoration: underline;
     }
 
-    .log-box {
-      border: 1px solid var(--border);
-      border-radius: 14px;
-      background: #0f172a;
-      color: #e2e8f0;
-      font-family: Consolas, monospace;
-      font-size: 12px;
-      line-height: 1.5;
-      padding: 14px;
-      min-height: 150px;
+    .request-buttons {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 14px;
+    }
+
+    .inline-status {
+      margin-top: 10px;
+      font-size: 13px;
+      color: var(--muted);
       white-space: pre-wrap;
-      word-break: break-word;
     }
 
-    @media (max-width: 980px) {
-      .main-grid {
+    .manual-card {
+      margin-top: 18px;
+    }
+
+    .manual-grid {
+      display: grid;
+      grid-template-columns: 220px 1fr 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .manual-buttons {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 12px;
+    }
+
+    .empty-card {
+      border: 1px dashed var(--border);
+      border-radius: 14px;
+      padding: 18px;
+      color: var(--muted);
+      background: #fcfcfd;
+      font-size: 14px;
+    }
+
+    @media (max-width: 1100px) {
+      .two-col {
         grid-template-columns: 1fr;
+      }
+
+      .scroll-area {
+        max-height: 520px;
       }
     }
 
-    @media (max-width: 700px) {
-      .form-grid {
+    @media (max-width: 800px) {
+      .topbar {
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      .nav-buttons {
+        justify-content: flex-start;
+      }
+
+      .task-row,
+      .manual-grid,
+      .request-grid {
         grid-template-columns: 1fr;
       }
 
-      .hero h1 {
-        font-size: 28px;
+      .request-top {
+        flex-direction: column;
       }
     }
   </style>
 </head>
 <body>
+  <div class="topbar">
+    <div class="topbar-left">
+      <img src="/svs-logo.png" alt="SVS Logo" class="logo" />
+      <div class="title-wrap">
+        <h1>SCW Job Requests</h1>
+        <p>Approve surveys and service calls from ClickUp.</p>
+      </div>
+    </div>
+
+    <div class="nav-buttons">
+      <a class="nav-btn" href="/index.html">Home</a>
+      <a class="nav-btn" href="/dispatch.html">Dispatch</a>
+      <a class="nav-btn" href="/service.html">Service</a>
+      <a class="nav-btn" href="/installation.html">Installation</a>
+      <a class="nav-btn" href="/calendar.html">Calendar</a>
+      <a class="nav-btn" href="/checkin.html">Check-In Board</a>
+      <a class="nav-btn" href="/technicians.html">Technicians</a>
+    </div>
+  </div>
+
   <div class="page">
-    <div class="topbar">
-      <button class="back-btn" onclick="goHome()">← Back to Dashboard</button>
-    </div>
-
-    <div class="hero">
-      <h1>SCW Job Requests</h1>
-      <p>
-        Build the next project name, create the Google Drive folder, and create the Asana task from one review page.
-      </p>
-    </div>
-
-    <div class="main-grid">
-      <div class="panel">
+    <div class="two-col">
+      <div class="card">
         <div class="panel-header">
-          <h2>Request Setup</h2>
-          <p>Manual review page for SCW surveys and service calls.</p>
+          <h2>Pending Survey Requests</h2>
+          <div class="subtext">Pull survey cards from ClickUp and approve them here.</div>
         </div>
 
-        <div class="panel-body">
-          <div class="form-grid">
-            <div class="field">
-              <label for="requestType">Request Type</label>
-              <select id="requestType">
-                <option value="Survey">Survey</option>
-                <option value="Service">Service</option>
-              </select>
-            </div>
+        <div class="task-row">
+          <input id="surveyTaskIdInput" class="input" placeholder="Pull one survey by ClickUp Task ID" />
+          <button id="pullSurveyBtn" class="btn btn-purple">Pull Survey</button>
+        </div>
 
-            <div class="field">
-              <label for="siteName">Site Name</label>
-              <input id="siteName" type="text" placeholder="Church Childcare" />
-            </div>
+        <div class="btn-row">
+          <button id="pullAllSurveysBtn" class="btn btn-purple">Pull New Surveys</button>
+          <button id="refreshSurveyBtn" class="btn btn-gray">Refresh</button>
+        </div>
 
-            <div class="field">
-              <label for="city">City</label>
-              <input id="city" type="text" placeholder="Walkertown" />
-            </div>
+        <div id="surveyStatus" class="status-line"></div>
 
-            <div class="field">
-              <label for="state">State</label>
-              <input id="state" type="text" placeholder="NC" maxlength="20" />
-            </div>
-
-            <div class="field full">
-              <label for="generatedName">Generated Name</label>
-              <input id="generatedName" type="text" placeholder="Generated name will show here" readonly />
-            </div>
-          </div>
-
-          <div class="actions">
-            <button class="btn primary" onclick="generateName()">Generate Name</button>
-            <button class="btn blue" onclick="createDriveFolder()">Create Drive Folder</button>
-            <button class="btn green" onclick="createAsanaTask()">Create Asana Task</button>
-            <button class="btn orange" onclick="createBoth()">Create Both</button>
-            <button class="btn red" onclick="clearForm()">Clear</button>
-          </div>
-
-          <div class="small-note">
-            Surveys will create an <strong>SCW Provided Documents</strong> subfolder. Service calls will only create the main folder.
-          </div>
+        <div class="scroll-area">
+          <div id="surveyList" class="request-list"></div>
         </div>
       </div>
 
-      <div class="panel">
+      <div class="card">
         <div class="panel-header">
-          <h2>Results</h2>
-          <p>Review what was created before moving on.</p>
+          <h2>Pending Service Requests</h2>
+          <div class="subtext">Pull service call cards from ClickUp and approve them here.</div>
         </div>
 
-        <div class="panel-body">
-          <div class="result-card">
-            <div class="result-block">
-              <div class="result-label">Status</div>
-              <div id="statusPill" class="status-pill status-idle">Idle</div>
-            </div>
+        <div class="task-row">
+          <input id="serviceTaskIdInput" class="input" placeholder="Pull one service call by ClickUp Task ID" />
+          <button id="pullServiceBtn" class="btn btn-green">Pull Service</button>
+        </div>
 
-            <div class="result-block">
-              <div class="result-label">Next Project Number</div>
-              <div id="nextNumber" class="result-value">—</div>
-            </div>
+        <div class="btn-row">
+          <button id="pullAllServicesBtn" class="btn btn-green">Pull New Services</button>
+          <button id="refreshServiceBtn" class="btn btn-gray">Refresh</button>
+        </div>
 
-            <div class="result-block">
-              <div class="result-label">Final Name</div>
-              <div id="finalName" class="result-value">—</div>
-            </div>
+        <div id="serviceStatus" class="status-line"></div>
 
-            <div class="result-block">
-              <div class="result-label">Created Links</div>
-              <div id="createdLinks" class="links">
-                <div class="result-value">No links yet.</div>
-              </div>
-            </div>
-
-            <div class="result-block">
-              <div class="result-label">Response Log</div>
-              <div id="logBox" class="log-box">Ready.</div>
-            </div>
-          </div>
+        <div class="scroll-area">
+          <div id="serviceList" class="request-list"></div>
         </div>
       </div>
+    </div>
+
+    <div class="card manual-card">
+      <div class="panel-header">
+        <h2>Manual Tools</h2>
+        <div class="subtext">Use this for one-off jobs or anything you need to create manually.</div>
+      </div>
+
+      <div class="manual-grid">
+        <div>
+          <div class="field-label">Request Type</div>
+          <select id="manualRequestType" class="input">
+            <option value="Survey">Survey</option>
+            <option value="Service">Service</option>
+            <option value="Install">Install</option>
+          </select>
+        </div>
+
+        <div>
+          <div class="field-label">Site Name</div>
+          <input id="manualSiteName" class="input" placeholder="Site name" />
+        </div>
+
+        <div>
+          <div class="field-label">City</div>
+          <input id="manualCity" class="input" placeholder="City" />
+        </div>
+
+        <div>
+          <div class="field-label">State</div>
+          <input id="manualState" class="input" placeholder="State" />
+        </div>
+      </div>
+
+      <div>
+        <div class="field-label">Generated Full Name</div>
+        <input id="manualGeneratedName" class="input" placeholder="Generated full name will show here" />
+      </div>
+
+      <div class="manual-buttons">
+        <button id="generateNameBtn" class="btn btn-purple">Generate Name</button>
+        <button id="createDriveFolderBtn" class="btn btn-gray">Create Drive Folder</button>
+        <button id="createAsanaTaskBtn" class="btn btn-gray">Create Asana Task</button>
+        <button id="createBothBtn" class="btn btn-green">Create Both</button>
+      </div>
+
+      <div id="manualStatus" class="status-line" style="margin-top: 12px;"></div>
     </div>
   </div>
 
   <script>
     const API_URL = window.location.origin;
 
-    function goHome() {
-      window.location.href = "index.html";
+    const surveyTaskIdInput = document.getElementById("surveyTaskIdInput");
+    const serviceTaskIdInput = document.getElementById("serviceTaskIdInput");
+
+    const pullSurveyBtn = document.getElementById("pullSurveyBtn");
+    const pullAllSurveysBtn = document.getElementById("pullAllSurveysBtn");
+    const refreshSurveyBtn = document.getElementById("refreshSurveyBtn");
+    const surveyStatus = document.getElementById("surveyStatus");
+    const surveyList = document.getElementById("surveyList");
+
+    const pullServiceBtn = document.getElementById("pullServiceBtn");
+    const pullAllServicesBtn = document.getElementById("pullAllServicesBtn");
+    const refreshServiceBtn = document.getElementById("refreshServiceBtn");
+    const serviceStatus = document.getElementById("serviceStatus");
+    const serviceList = document.getElementById("serviceList");
+
+    const manualRequestType = document.getElementById("manualRequestType");
+    const manualSiteName = document.getElementById("manualSiteName");
+    const manualCity = document.getElementById("manualCity");
+    const manualState = document.getElementById("manualState");
+    const manualGeneratedName = document.getElementById("manualGeneratedName");
+    const generateNameBtn = document.getElementById("generateNameBtn");
+    const createDriveFolderBtn = document.getElementById("createDriveFolderBtn");
+    const createAsanaTaskBtn = document.getElementById("createAsanaTaskBtn");
+    const createBothBtn = document.getElementById("createBothBtn");
+    const manualStatus = document.getElementById("manualStatus");
+
+    function setSurveyStatus(msg) {
+      surveyStatus.textContent = msg || "";
     }
 
-    function setStatus(type, text) {
-      const el = document.getElementById("statusPill");
-      el.textContent = text;
-      el.className = "status-pill";
-
-      if (type === "success") el.classList.add("status-success");
-      else if (type === "error") el.classList.add("status-error");
-      else if (type === "working") el.classList.add("status-working");
-      else el.classList.add("status-idle");
+    function setServiceStatus(msg) {
+      serviceStatus.textContent = msg || "";
     }
 
-    function logResponse(data) {
-      document.getElementById("logBox").textContent =
-        typeof data === "string" ? data : JSON.stringify(data, null, 2);
+    function setManualStatus(msg) {
+      manualStatus.textContent = msg || "";
     }
 
-    function updateLinks(items = []) {
-      const wrap = document.getElementById("createdLinks");
+    function escapeHtml(value) {
+      return String(value ?? "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    function attachmentLinksHtml(item) {
+      const links = [];
+
+      if (item.survey_form_link) {
+        links.push(`<li><a href="${escapeHtml(item.survey_form_link)}" target="_blank">Survey Form</a></li>`);
+      }
+
+      if (item.dropbox_photos_link) {
+        links.push(`<li><a href="${escapeHtml(item.dropbox_photos_link)}" target="_blank">Dropbox Photos Link</a></li>`);
+      }
+
+      if (Array.isArray(item.attachments)) {
+        item.attachments.forEach(att => {
+          if (att && att.url && att.title) {
+            links.push(`<li><a href="${escapeHtml(att.url)}" target="_blank">${escapeHtml(att.title)}</a></li>`);
+          }
+        });
+      }
+
+      if (!links.length) {
+        return `<div class="field-value">No links available</div>`;
+      }
+
+      return `<ul class="links-list">${links.join("")}</ul>`;
+    }
+
+    function badgeClass(type) {
+      return String(type || "").toLowerCase() === "service" ? "badge-service" : "badge-survey";
+    }
+
+    function createRequestCard(item) {
+      const wrapper = document.createElement("div");
+      wrapper.className = "request-card";
+
+      wrapper.innerHTML = `
+        <div class="request-top">
+          <div>
+            <div class="request-title">${escapeHtml(item.suggested_full_name || item.task_name || "Untitled Request")}</div>
+            <div class="request-subtitle">${escapeHtml(item.task_name || "")}</div>
+          </div>
+          <div class="badge ${badgeClass(item.request_type)}">${escapeHtml(item.request_type || "Request")}</div>
+        </div>
+
+        <div class="request-grid">
+          <div>
+            <div class="field-label">Status</div>
+            <div class="field-value">${escapeHtml(item.status || "")}</div>
+          </div>
+
+          <div>
+            <div class="field-label">Project Manager</div>
+            <div class="field-value">${escapeHtml(item.project_manager || "")}</div>
+          </div>
+
+          <div>
+            <div class="field-label">ClickUp Task ID</div>
+            <div class="field-value">${escapeHtml(item.clickup_task_id || "")}</div>
+          </div>
+
+          <div>
+            <div class="field-label">SCW Task ID</div>
+            <div class="field-value">${escapeHtml(item.scw_task_id || "")}</div>
+          </div>
+
+          <div>
+            <div class="field-label">Site Name</div>
+            <div class="field-value">${escapeHtml(item.site_name || "")}</div>
+          </div>
+
+          <div>
+            <div class="field-label">City / State</div>
+            <div class="field-value">${escapeHtml((item.city || "") + ((item.city || item.state) ? ", " : "") + (item.state || "")).replace(", ", item.city && item.state ? " " : "")}</div>
+          </div>
+
+          <div>
+            <div class="field-label">POC Name</div>
+            <div class="field-value">${escapeHtml(item.poc_name || "")}</div>
+          </div>
+
+          <div>
+            <div class="field-label">POC Phone</div>
+            <div class="field-value">${escapeHtml(item.poc_phone || "")}</div>
+          </div>
+        </div>
+
+        <div>
+          <div class="field-label">Project Address</div>
+          <div class="field-value">${escapeHtml(item.project_address || "")}</div>
+        </div>
+
+        <div class="links-box">
+          <div class="field-label">Links</div>
+          ${attachmentLinksHtml(item)}
+        </div>
+
+        <div class="request-buttons">
+          <button class="btn btn-green approve-btn">Approve</button>
+          <button class="btn btn-gray load-manual-btn">Load Into Manual</button>
+          <button class="btn btn-red delete-btn">Delete</button>
+        </div>
+
+        <div class="inline-status"></div>
+      `;
+
+      const inlineStatus = wrapper.querySelector(".inline-status");
+
+      wrapper.querySelector(".approve-btn").addEventListener("click", async () => {
+        inlineStatus.textContent = "Approving request...";
+        try {
+          const res = await fetch(`${API_URL}/scw/approve-pending-request`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ pending_request_id: item.id })
+          });
+
+          const data = await res.json();
+
+          if (!res.ok) {
+            inlineStatus.textContent = `Approve failed: ${data.detail || "Unknown error"}`;
+            return;
+          }
+
+          inlineStatus.textContent = "Approved successfully.";
+          await loadPendingRequests();
+        } catch (err) {
+          inlineStatus.textContent = `Approve failed: ${err.message}`;
+        }
+      });
+
+      wrapper.querySelector(".delete-btn").addEventListener("click", async () => {
+        inlineStatus.textContent = "Deleting from pending list...";
+        try {
+          const res = await fetch(`${API_URL}/scw/pending-requests/${item.id}`, {
+            method: "DELETE"
+          });
+
+          const data = await res.json();
+
+          if (!res.ok) {
+            inlineStatus.textContent = `Delete failed: ${data.detail || "Unknown error"}`;
+            return;
+          }
+
+          inlineStatus.textContent = "Removed from pending list.";
+          await loadPendingRequests();
+        } catch (err) {
+          inlineStatus.textContent = `Delete failed: ${err.message}`;
+        }
+      });
+
+      wrapper.querySelector(".load-manual-btn").addEventListener("click", () => {
+        manualRequestType.value = item.request_type || "Survey";
+        manualSiteName.value = item.site_name || "";
+        manualCity.value = item.city || "";
+        manualState.value = item.state || "";
+        manualGeneratedName.value = item.suggested_full_name || "";
+        setManualStatus(`Loaded ${item.request_type || "request"} into manual tools.`);
+        window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" });
+      });
+
+      return wrapper;
+    }
+
+    function renderSection(listEl, items, emptyText) {
+      listEl.innerHTML = "";
 
       if (!items.length) {
-        wrap.innerHTML = `<div class="result-value">No links yet.</div>`;
+        listEl.innerHTML = `<div class="empty-card">${escapeHtml(emptyText)}</div>`;
         return;
       }
 
-      wrap.innerHTML = items.map(item => `
-        <div class="link-row">
-          <a href="${item.url}" target="_blank" rel="noopener noreferrer">${item.label}</a>
-        </div>
-      `).join("");
+      items.forEach(item => {
+        listEl.appendChild(createRequestCard(item));
+      });
     }
 
-    function getFormData() {
-      return {
-        request_type: document.getElementById("requestType").value.trim(),
-        site_name: document.getElementById("siteName").value.trim(),
-        city: document.getElementById("city").value.trim(),
-        state: document.getElementById("state").value.trim()
-      };
-    }
-
-    function validateForm() {
-      const data = getFormData();
-      if (!data.request_type || !data.site_name || !data.city || !data.state) {
-        setStatus("error", "Missing Info");
-        logResponse("Fill in request type, site name, city, and state first.");
-        return false;
-      }
-      return true;
-    }
-
-    async function generateName() {
-      if (!validateForm()) return;
-
-      setStatus("working", "Generating");
-      updateLinks([]);
-
+    async function loadPendingRequests() {
       try {
-        const response = await fetch(`${API_URL}/scw/next-name`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(getFormData())
-        });
+        const res = await fetch(`${API_URL}/scw/pending-requests`);
+        const data = await res.json();
 
-        const data = await response.json();
-
-        if (!response.ok) {
-          setStatus("error", "Error");
-          logResponse(data);
+        if (!res.ok) {
+          setSurveyStatus(`Failed to load requests: ${data.detail || "Unknown error"}`);
+          setServiceStatus(`Failed to load requests: ${data.detail || "Unknown error"}`);
           return;
         }
 
-        document.getElementById("generatedName").value = data.full_name || "";
-        document.getElementById("nextNumber").textContent = data.next_project_number || "—";
-        document.getElementById("finalName").textContent = data.full_name || "—";
+        const all = Array.isArray(data) ? data : [];
+        const surveys = all.filter(x => String(x.request_type || "").toLowerCase() === "survey");
+        const services = all.filter(x => String(x.request_type || "").toLowerCase() === "service");
 
-        setStatus("success", "Name Ready");
-        logResponse(data);
-      } catch (error) {
-        setStatus("error", "Error");
-        logResponse(String(error));
+        renderSection(surveyList, surveys, "No pending survey requests right now.");
+        renderSection(serviceList, services, "No pending service requests right now.");
+
+        setSurveyStatus(`Loaded ${surveys.length} pending survey request${surveys.length === 1 ? "" : "s"}.`);
+        setServiceStatus(`Loaded ${services.length} pending service request${services.length === 1 ? "" : "s"}.`);
+      } catch (err) {
+        setSurveyStatus(`Failed to load requests: ${err.message}`);
+        setServiceStatus(`Failed to load requests: ${err.message}`);
+      }
+    }
+
+    async function pullSurveyTask() {
+      const taskId = surveyTaskIdInput.value.trim();
+      if (!taskId) {
+        setSurveyStatus("Enter a survey ClickUp task ID first.");
+        return;
+      }
+
+      setSurveyStatus("Pulling survey task...");
+
+      try {
+        const res = await fetch(`${API_URL}/scw/pull-survey-task/${encodeURIComponent(taskId)}`, {
+          method: "POST"
+        });
+        const data = await res.json();
+
+        if (!res.ok) {
+          setSurveyStatus(`Error pulling survey task: ${data.detail || "Internal Server Error"}`);
+          return;
+        }
+
+        setSurveyStatus("Survey task pulled successfully.");
+        await loadPendingRequests();
+      } catch (err) {
+        setSurveyStatus(`Error pulling survey task: ${err.message}`);
+      }
+    }
+
+    async function pullServiceTask() {
+      const taskId = serviceTaskIdInput.value.trim();
+      if (!taskId) {
+        setServiceStatus("Enter a service ClickUp task ID first.");
+        return;
+      }
+
+      setServiceStatus("Pulling service task...");
+
+      try {
+        const res = await fetch(`${API_URL}/scw/pull-service-task/${encodeURIComponent(taskId)}`, {
+          method: "POST"
+        });
+        const data = await res.json();
+
+        if (!res.ok) {
+          setServiceStatus(`Error pulling service task: ${data.detail || "Internal Server Error"}`);
+          return;
+        }
+
+        setServiceStatus("Service task pulled successfully.");
+        await loadPendingRequests();
+      } catch (err) {
+        setServiceStatus(`Error pulling service task: ${err.message}`);
+      }
+    }
+
+    async function pullAllSurveys() {
+      setSurveyStatus("Pulling new surveys from ClickUp...");
+      try {
+        const res = await fetch(`${API_URL}/scw/pull-new-surveys`, { method: "POST" });
+        const data = await res.json();
+
+        if (!res.ok) {
+          setSurveyStatus(`Failed to pull surveys: ${data.detail || "Unknown error"}`);
+          return;
+        }
+
+        setSurveyStatus(`Pulled ${data.saved_count || 0} survey request${data.saved_count === 1 ? "" : "s"}.`);
+        await loadPendingRequests();
+      } catch (err) {
+        setSurveyStatus(`Failed to pull surveys: ${err.message}`);
+      }
+    }
+
+    async function pullAllServices() {
+      setServiceStatus("Pulling new service calls from ClickUp...");
+      try {
+        const res = await fetch(`${API_URL}/scw/pull-new-services`, { method: "POST" });
+        const data = await res.json();
+
+        if (!res.ok) {
+          setServiceStatus(`Failed to pull services: ${data.detail || "Unknown error"}`);
+          return;
+        }
+
+        setServiceStatus(`Pulled ${data.saved_count || 0} service request${data.saved_count === 1 ? "" : "s"}.`);
+        await loadPendingRequests();
+      } catch (err) {
+        setServiceStatus(`Failed to pull services: ${err.message}`);
+      }
+    }
+
+    async function generateName() {
+      const payload = {
+        request_type: manualRequestType.value.trim(),
+        site_name: manualSiteName.value.trim(),
+        city: manualCity.value.trim(),
+        state: manualState.value.trim()
+      };
+
+      if (!payload.request_type || !payload.site_name || !payload.city || !payload.state) {
+        setManualStatus("Fill in request type, site name, city, and state first.");
+        return;
+      }
+
+      setManualStatus("Generating name...");
+
+      try {
+        const res = await fetch(`${API_URL}/scw/next-name`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+          setManualStatus(`Error generating name: ${data.detail || "Unknown error"}`);
+          return;
+        }
+
+        manualGeneratedName.value = data.full_name || "";
+        setManualStatus("Name generated.");
+      } catch (err) {
+        setManualStatus(`Error generating name: ${err.message}`);
       }
     }
 
     async function createDriveFolder() {
-      const folderName = document.getElementById("generatedName").value.trim();
+      const folderName = manualGeneratedName.value.trim();
       if (!folderName) {
-        setStatus("error", "No Name");
-        logResponse("Generate the name first.");
+        setManualStatus("Generate or enter a full name first.");
         return;
       }
 
-      setStatus("working", "Creating Drive Folder");
+      setManualStatus("Creating Drive folder...");
 
       try {
-        const response = await fetch(`${API_URL}/scw/create-drive-folder`, {
+        const res = await fetch(`${API_URL}/scw/create-drive-folder`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             folder_name: folderName,
-            is_survey: document.getElementById("requestType").value === "Survey"
+            is_survey: manualRequestType.value.trim().toLowerCase() === "survey"
           })
         });
 
-        const data = await response.json();
+        const data = await res.json();
 
-        if (!response.ok) {
-          setStatus("error", "Drive Error");
-          logResponse(data);
+        if (!res.ok) {
+          setManualStatus(`Drive folder error: ${data.detail || "Unknown error"}`);
           return;
         }
 
-        const links = [];
-        if (data.main_folder?.webViewLink) {
-          links.push({
-            label: `Main Folder: ${data.main_folder.name}`,
-            url: data.main_folder.webViewLink
-          });
-        }
-        if (data.scw_provided_documents?.webViewLink) {
-          links.push({
-            label: `SCW Provided Documents: ${data.scw_provided_documents.name}`,
-            url: data.scw_provided_documents.webViewLink
-          });
-        }
-
-        updateLinks(links);
-        setStatus("success", "Drive Done");
-        logResponse(data);
-      } catch (error) {
-        setStatus("error", "Drive Error");
-        logResponse(String(error));
+        setManualStatus(`Drive folder created: ${data.main_folder?.webViewLink || "Success"}`);
+      } catch (err) {
+        setManualStatus(`Drive folder error: ${err.message}`);
       }
     }
 
     async function createAsanaTask() {
-      const taskName = document.getElementById("generatedName").value.trim();
+      const taskName = manualGeneratedName.value.trim();
       if (!taskName) {
-        setStatus("error", "No Name");
-        logResponse("Generate the name first.");
+        setManualStatus("Generate or enter a full name first.");
         return;
       }
 
-      setStatus("working", "Creating Asana Task");
+      setManualStatus("Creating Asana task...");
 
       try {
-        const response = await fetch(`${API_URL}/scw/create-asana-task`, {
+        const res = await fetch(`${API_URL}/scw/create-asana-task`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ task_name: taskName })
         });
 
-        const data = await response.json();
+        const data = await res.json();
 
-        if (!response.ok) {
-          setStatus("error", "Asana Error");
-          logResponse(data);
+        if (!res.ok) {
+          setManualStatus(`Asana task error: ${data.detail || "Unknown error"}`);
           return;
         }
 
-        const links = [];
-        const permalink = data.task?.data?.permalink_url;
-        const taskTitle = data.task?.data?.name || taskName;
-
-        if (permalink) {
-          links.push({
-            label: `Asana Task: ${taskTitle}`,
-            url: permalink
-          });
-        } else {
-          links.push({
-            label: `Asana Task Created: ${taskTitle}`,
-            url: "#"
-          });
-        }
-
-        updateLinks(links.filter(x => x.url !== "#"));
-        setStatus("success", "Asana Done");
-        logResponse(data);
-      } catch (error) {
-        setStatus("error", "Asana Error");
-        logResponse(String(error));
+        setManualStatus("Asana task created.");
+      } catch (err) {
+        setManualStatus(`Asana task error: ${err.message}`);
       }
     }
 
     async function createBoth() {
-      const folderName = document.getElementById("generatedName").value.trim();
-      if (!folderName) {
-        setStatus("error", "No Name");
-        logResponse("Generate the name first.");
+      const taskName = manualGeneratedName.value.trim();
+      if (!taskName) {
+        setManualStatus("Generate or enter a full name first.");
         return;
       }
 
-      setStatus("working", "Creating Both");
+      setManualStatus("Creating Drive folder and Asana task...");
 
       try {
-        const driveResponse = await fetch(`${API_URL}/scw/create-drive-folder`, {
+        const driveRes = await fetch(`${API_URL}/scw/create-drive-folder`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            folder_name: folderName,
-            is_survey: document.getElementById("requestType").value === "Survey"
+            folder_name: taskName,
+            is_survey: manualRequestType.value.trim().toLowerCase() === "survey"
           })
         });
 
-        const driveData = await driveResponse.json();
-        if (!driveResponse.ok) {
-          setStatus("error", "Drive Error");
-          logResponse(driveData);
+        const driveData = await driveRes.json();
+        if (!driveRes.ok) {
+          setManualStatus(`Drive folder error: ${driveData.detail || "Unknown error"}`);
           return;
         }
 
-        const asanaResponse = await fetch(`${API_URL}/scw/create-asana-task`, {
+        const asanaRes = await fetch(`${API_URL}/scw/create-asana-task`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ task_name: folderName })
+          body: JSON.stringify({ task_name: taskName })
         });
 
-        const asanaData = await asanaResponse.json();
-        if (!asanaResponse.ok) {
-          setStatus("error", "Asana Error");
-          logResponse(asanaData);
+        const asanaData = await asanaRes.json();
+        if (!asanaRes.ok) {
+          setManualStatus(`Asana task error: ${asanaData.detail || "Unknown error"}`);
           return;
         }
 
-        const links = [];
-        if (driveData.main_folder?.webViewLink) {
-          links.push({
-            label: `Main Folder: ${driveData.main_folder.name}`,
-            url: driveData.main_folder.webViewLink
-          });
-        }
-        if (driveData.scw_provided_documents?.webViewLink) {
-          links.push({
-            label: `SCW Provided Documents: ${driveData.scw_provided_documents.name}`,
-            url: driveData.scw_provided_documents.webViewLink
-          });
-        }
-        if (asanaData.task?.data?.permalink_url) {
-          links.push({
-            label: `Asana Task: ${asanaData.task.data.name || folderName}`,
-            url: asanaData.task.data.permalink_url
-          });
-        }
-
-        updateLinks(links);
-        setStatus("success", "Both Created");
-        logResponse({
-          drive: driveData,
-          asana: asanaData
-        });
-      } catch (error) {
-        setStatus("error", "Error");
-        logResponse(String(error));
+        setManualStatus("Drive folder and Asana task created successfully.");
+      } catch (err) {
+        setManualStatus(`Create both error: ${err.message}`);
       }
     }
 
-    function clearForm() {
-      document.getElementById("requestType").value = "Survey";
-      document.getElementById("siteName").value = "";
-      document.getElementById("city").value = "";
-      document.getElementById("state").value = "";
-      document.getElementById("generatedName").value = "";
-      document.getElementById("nextNumber").textContent = "—";
-      document.getElementById("finalName").textContent = "—";
-      updateLinks([]);
-      setStatus("idle", "Idle");
-      logResponse("Ready.");
-    }
+    pullSurveyBtn.addEventListener("click", pullSurveyTask);
+    pullAllSurveysBtn.addEventListener("click", pullAllSurveys);
+    refreshSurveyBtn.addEventListener("click", loadPendingRequests);
+
+    pullServiceBtn.addEventListener("click", pullServiceTask);
+    pullAllServicesBtn.addEventListener("click", pullAllServices);
+    refreshServiceBtn.addEventListener("click", loadPendingRequests);
+
+    generateNameBtn.addEventListener("click", generateName);
+    createDriveFolderBtn.addEventListener("click", createDriveFolder);
+    createAsanaTaskBtn.addEventListener("click", createAsanaTask);
+    createBothBtn.addEventListener("click", createBoth);
+
+    loadPendingRequests();
   </script>
 </body>
 </html>

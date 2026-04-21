@@ -1,17 +1,19 @@
+import json
+import os
+import re
+import sqlite3
+import uuid
+from datetime import datetime, timedelta
+from typing import List, Optional, Tuple
+
+import requests
 from fastapi import FastAPI, HTTPException, Response
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
-from pydantic import BaseModel
-from typing import Optional, List, Tuple
-from datetime import datetime, timedelta
+from fastapi.staticfiles import StaticFiles
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
-import sqlite3
-import requests
-import os
-import uuid
-import re
+from pydantic import BaseModel
 
 app = FastAPI(title="SVS Dispatch Backend")
 
@@ -27,6 +29,7 @@ ASANA_PROJECT_ID = "1206280340344209"
 ASANA_SECTION_ID = "1206281947668069"
 
 CLICKUP_API_TOKEN = os.environ.get("CLICKUP_API_TOKEN", "")
+CLICKUP_SURVEY_LIST_ID = os.environ.get("CLICKUP_SURVEY_LIST_ID", "")
 
 GOOGLE_DRIVE_PARENT_FOLDER_ID = os.environ.get(
     "GOOGLE_DRIVE_PARENT_FOLDER_ID",
@@ -118,6 +121,49 @@ def init_db():
     ensure_column(cur, "events", "ac_checkin_comment_id", "TEXT DEFAULT ''")
     ensure_column(cur, "events", "ip_checkout_comment_id", "TEXT DEFAULT ''")
     ensure_column(cur, "events", "ac_checkout_comment_id", "TEXT DEFAULT ''")
+
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS pending_scw_requests (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            request_type TEXT NOT NULL,
+            clickup_task_id TEXT NOT NULL UNIQUE,
+            scw_task_id TEXT DEFAULT '',
+            project_manager TEXT DEFAULT '',
+            client_name TEXT DEFAULT '',
+            site_name TEXT DEFAULT '',
+            city TEXT DEFAULT '',
+            state TEXT DEFAULT '',
+            project_address TEXT DEFAULT '',
+            poc_name TEXT DEFAULT '',
+            poc_email TEXT DEFAULT '',
+            poc_phone TEXT DEFAULT '',
+            task_name TEXT DEFAULT '',
+            status TEXT DEFAULT '',
+            survey_form_link TEXT DEFAULT '',
+            dropbox_photos_link TEXT DEFAULT '',
+            attachments_json TEXT DEFAULT '[]',
+            next_project_number TEXT DEFAULT '',
+            suggested_full_name TEXT DEFAULT '',
+            create_scw_provided_documents INTEGER DEFAULT 1,
+            is_approved INTEGER DEFAULT 0,
+            created_at TEXT DEFAULT '',
+            approved_at TEXT DEFAULT '',
+            drive_folder_id TEXT DEFAULT '',
+            drive_folder_link TEXT DEFAULT '',
+            scw_documents_folder_id TEXT DEFAULT '',
+            scw_documents_folder_link TEXT DEFAULT '',
+            asana_task_gid TEXT DEFAULT '',
+            asana_task_name TEXT DEFAULT ''
+        )
+    """)
+
+    ensure_column(cur, "pending_scw_requests", "client_name", "TEXT DEFAULT ''")
+    ensure_column(cur, "pending_scw_requests", "city", "TEXT DEFAULT ''")
+    ensure_column(cur, "pending_scw_requests", "state", "TEXT DEFAULT ''")
+    ensure_column(cur, "pending_scw_requests", "project_address", "TEXT DEFAULT ''")
+    ensure_column(cur, "pending_scw_requests", "poc_name", "TEXT DEFAULT ''")
+    ensure_column(cur, "pending_scw_requests", "poc_email", "TEXT DEFAULT ''")
+    ensure_column(cur, "pending_scw_requests", "poc_phone", "TEXT DEFAULT ''")
 
     conn.commit()
     conn.close()
@@ -239,6 +285,10 @@ class CreateAsanaTaskRequest(BaseModel):
     task_name: str
 
 
+class ApprovePendingRequestPayload(BaseModel):
+    pending_request_id: int
+
+
 # -----------------------------
 # HELPERS
 # -----------------------------
@@ -251,6 +301,21 @@ def normalize_event_row(row):
     data["checked_in"] = bool(data.get("checked_in", 0))
     data["checked_out"] = bool(data.get("checked_out", 0))
     return data
+
+
+def normalize_pending_request_row(row):
+    data = dict(row)
+    data["create_scw_provided_documents"] = bool(data.get("create_scw_provided_documents", 0))
+    data["is_approved"] = bool(data.get("is_approved", 0))
+    try:
+        data["attachments"] = json.loads(data.get("attachments_json") or "[]")
+    except Exception:
+        data["attachments"] = []
+    return data
+
+
+def utc_now_iso():
+    return datetime.utcnow().isoformat() + "Z"
 
 
 def pretty_date(date_str: str) -> str:
@@ -441,12 +506,12 @@ Thank you,"""
 
 
 # -----------------------------
-# CLICKUP API HELPERS
+# CLICKUP HELPERS
 # -----------------------------
 def clickup_headers():
     return {
         "Authorization": CLICKUP_API_TOKEN,
-        "Content-Type": "application/json"
+        "Content-Type": "application/json",
     }
 
 
@@ -483,6 +548,494 @@ def delete_clickup_comment(comment_id: str):
 
     url = f"https://api.clickup.com/api/v2/comment/{comment_id}"
     return requests.delete(url, headers=clickup_headers(), timeout=30)
+
+
+def get_clickup_task_data(task_id: str):
+    url = f"https://api.clickup.com/api/v2/task/{task_id}"
+    response = requests.get(url, headers=clickup_headers(), timeout=30)
+
+    try:
+        data = response.json()
+    except Exception:
+        data = {"raw_text": response.text}
+
+    return response.status_code, data
+
+
+def get_clickup_task_comments(task_id: str):
+    url = f"https://api.clickup.com/api/v2/task/{task_id}/comment"
+    response = requests.get(url, headers=clickup_headers(), timeout=30)
+
+    try:
+        data = response.json()
+    except Exception:
+        data = {"raw_text": response.text}
+
+    return response.status_code, data
+
+
+def get_clickup_list_tasks(list_id: str):
+    url = f"https://api.clickup.com/api/v2/list/{list_id}/task"
+    params = {"include_closed": "true"}
+    response = requests.get(url, headers=clickup_headers(), params=params, timeout=30)
+
+    try:
+        data = response.json()
+    except Exception:
+        data = {"raw_text": response.text}
+
+    return response.status_code, data
+
+
+def get_custom_field_value(custom_fields, field_name: str):
+    for field in custom_fields:
+        if (field.get("name") or "").strip().lower() == field_name.strip().lower():
+            value = field.get("value")
+            if value is None:
+                return ""
+            return value
+    return ""
+
+
+def extract_text_from_comment_item(item: dict) -> str:
+    for key in ["comment_text", "comment", "text_content"]:
+        value = item.get(key)
+        if isinstance(value, str) and value.strip():
+            return value.strip()
+
+    comment_value = item.get("comment")
+    if isinstance(comment_value, list):
+        parts = []
+        for part in comment_value:
+            if isinstance(part, dict):
+                txt = part.get("text")
+                if isinstance(txt, str) and txt.strip():
+                    parts.append(txt.strip())
+        if parts:
+            return "".join(parts).strip()
+
+    comment_obj = item.get("comment") if isinstance(item.get("comment"), dict) else None
+    if comment_obj:
+        for key in ["text_content", "comment_text", "text"]:
+            value = comment_obj.get(key)
+            if isinstance(value, str) and value.strip():
+                return value.strip()
+
+    return ""
+
+
+def get_task_comment_texts(task_id: str, task: dict):
+    texts = []
+
+    for field in ["description", "text_content", "markdown_description"]:
+        value = task.get(field)
+        if isinstance(value, str) and value.strip():
+            texts.append(value.strip())
+
+    status_code, comments_data = get_clickup_task_comments(task_id)
+    if status_code == 200 and isinstance(comments_data, dict):
+        comments = comments_data.get("comments", []) or []
+        micah_texts = []
+
+        for item in comments:
+            if not isinstance(item, dict):
+                continue
+
+            comment_text = extract_text_from_comment_item(item)
+            if not comment_text:
+                continue
+
+            texts.append(comment_text)
+
+            user_obj = item.get("user") or {}
+            username = str(user_obj.get("username", "") or "").strip().lower()
+            email = str(user_obj.get("email", "") or "").strip().lower()
+            initials = str(user_obj.get("initials", "") or "").strip().lower()
+
+            if "micah" in username or "micah" in email or initials == "ms":
+                micah_texts.append(comment_text)
+
+        texts.extend(micah_texts)
+
+    return texts
+
+
+def extract_survey_comment_fields(task_id: str, task: dict):
+    texts = get_task_comment_texts(task_id, task)
+    joined = "\n\n".join(texts)
+
+    result = {
+        "client": "",
+        "site": "",
+        "project_address": "",
+        "poc_name": "",
+        "poc_email": "",
+        "poc_phone": ""
+    }
+
+    patterns = {
+        "client": r"Client:\s*(.+)",
+        "site": r"Site:\s*(.+)",
+        "project_address": r"Project Address:\s*(.+)",
+        "poc_name": r"Name:\s*(.+)",
+        "poc_email": r"Email:\s*(.+)",
+        "poc_phone": r"Phone:\s*(.+)"
+    }
+
+    for key, pattern in patterns.items():
+        match = re.search(pattern, joined, flags=re.IGNORECASE)
+        if match:
+            result[key] = match.group(1).strip()
+
+    return result
+
+
+def extract_service_description_fields(task: dict):
+    description = str(task.get("description", "") or "").strip()
+    task_name = str(task.get("name", "") or "").strip()
+
+    result = {
+        "client": "",
+        "site": "",
+        "project_address": "",
+        "city": "",
+        "state": "",
+        "poc_name": "",
+        "poc_email": "",
+        "poc_phone": "",
+        "description_text": description,
+    }
+
+    clean_task_name = task_name
+    clean_task_name = re.sub(r"^Service\s*Call\s*", "", clean_task_name, flags=re.I)
+    clean_task_name = re.sub(r"\s*/WO.*$", "", clean_task_name, flags=re.I).strip()
+    result["site"] = clean_task_name
+    result["client"] = clean_task_name
+
+    address_match = re.search(
+        r"Service\s*Call:\s*(.+)",
+        description,
+        flags=re.I
+    )
+    if address_match:
+        address_line = address_match.group(1).strip()
+        result["project_address"] = address_line
+
+        city_state_match = re.search(r"([A-Za-z .'-]+),\s*([A-Z]{2})\s+\d{5}(?:-\d{4})?$", address_line)
+        if city_state_match:
+            city_chunk = city_state_match.group(1).strip()
+            state_chunk = city_state_match.group(2).strip()
+
+            city_words = city_chunk.split()
+            if city_words:
+                result["city"] = city_words[-1].strip()
+            else:
+                result["city"] = city_chunk
+
+            result["state"] = state_chunk
+
+    contact_match = re.search(
+        r"Contact\s*Info:\s*Name:\s*(.*?)\s*\|\s*phone:\s*(.*?)\s*\|\s*email:\s*(.*?)(?:\n|$)",
+        description,
+        flags=re.I | re.S
+    )
+    if contact_match:
+        result["poc_name"] = contact_match.group(1).strip()
+        result["poc_phone"] = contact_match.group(2).strip()
+        result["poc_email"] = contact_match.group(3).strip()
+
+    return result
+
+
+def parse_city_state_from_address(address: str) -> Tuple[str, str]:
+    if not address:
+        return "", ""
+
+    match = re.search(r"([A-Za-z .'-]+),\s*([A-Z]{2})\s+\d{5}(?:-\d{4})?$", address)
+    if match:
+        return match.group(1).strip(), match.group(2).strip()
+
+    match = re.search(r"([A-Za-z .'-]+)\s+([A-Z]{2})\s+\d{5}(?:-\d{4})?$", address)
+    if match:
+        city = match.group(1).strip()
+        state = match.group(2).strip()
+        if "," in city:
+            city = city.split(",")[-1].strip()
+        return city, state
+
+    return "", ""
+
+
+def build_request_display_name(site_name: str, city: str, state: str):
+    site_name = (site_name or "").strip()
+    city = (city or "").strip()
+    state = (state or "").strip()
+
+    if site_name and city and state:
+        return f"{site_name}, {city} {state}"
+    if site_name and city:
+        return f"{site_name}, {city}"
+    return site_name
+
+
+def build_survey_draft_from_task(task_id: str, task: dict):
+    custom_fields = task.get("custom_fields", [])
+    attachments = task.get("attachments", [])
+    task_name = task.get("name", "") or ""
+
+    survey_fields = extract_survey_comment_fields(task_id, task)
+
+    client_name = survey_fields.get("client", "").strip()
+    raw_site = survey_fields.get("site", "").strip()
+    project_address = survey_fields.get("project_address", "").strip()
+    poc_name = survey_fields.get("poc_name", "").strip()
+    poc_email = survey_fields.get("poc_email", "").strip()
+    poc_phone = survey_fields.get("poc_phone", "").strip()
+
+    site_name = ""
+    city = ""
+    state = ""
+
+    if raw_site:
+        if " - " in raw_site:
+            parts = raw_site.split(" - ", 1)
+            site_name = parts[0].strip()
+            city = parts[1].strip()
+        else:
+            site_name = raw_site.strip()
+
+    address_city, address_state = parse_city_state_from_address(project_address)
+
+    if not city:
+        city = address_city
+
+    state = address_state
+
+    if not site_name:
+        site_name = task_name.split(" - ")[0].strip() if " - " in task_name else task_name.strip()
+
+    scw_task_id = get_custom_field_value(custom_fields, "SCW Task ID")
+    project_manager = get_custom_field_value(custom_fields, "Project Manager")
+    survey_form_link = get_custom_field_value(custom_fields, "Site Survey Form")
+    dropbox_photos_link = get_custom_field_value(custom_fields, "Dropbox Photos Link")
+
+    try:
+        next_project_number = get_next_project_number()
+    except Exception:
+        next_project_number = "ERROR"
+
+    display_site_name = build_request_display_name(site_name, city, state)
+    full_name = f"{next_project_number} Survey - {display_site_name}"
+
+    attachment_list = []
+    for att in attachments:
+        attachment_list.append({
+            "id": att.get("id", ""),
+            "title": att.get("title", ""),
+            "url": att.get("url", ""),
+            "extension": att.get("extension", ""),
+            "size": att.get("size", "")
+        })
+
+    return {
+        "request_type": "Survey",
+        "clickup_task_id": task_id,
+        "scw_task_id": scw_task_id,
+        "project_manager": project_manager,
+        "client_name": client_name,
+        "site_name": site_name,
+        "city": city,
+        "state": state,
+        "project_address": project_address,
+        "poc_name": poc_name,
+        "poc_email": poc_email,
+        "poc_phone": poc_phone,
+        "task_name": task_name,
+        "status": (task.get("status") or {}).get("status", ""),
+        "survey_form_link": survey_form_link,
+        "dropbox_photos_link": dropbox_photos_link,
+        "attachments": attachment_list,
+        "next_project_number": next_project_number,
+        "suggested_full_name": full_name,
+        "create_scw_provided_documents": True
+    }
+
+
+def build_service_draft_from_task(task_id: str, task: dict):
+    custom_fields = task.get("custom_fields", [])
+    attachments = task.get("attachments", [])
+    task_name = task.get("name", "") or ""
+
+    service_fields = extract_service_description_fields(task)
+
+    client_name = service_fields.get("client", "").strip()
+    site_name = service_fields.get("site", "").strip()
+    city = service_fields.get("city", "").strip()
+    state = service_fields.get("state", "").strip()
+    project_address = service_fields.get("project_address", "").strip()
+    poc_name = service_fields.get("poc_name", "").strip()
+    poc_email = service_fields.get("poc_email", "").strip()
+    poc_phone = service_fields.get("poc_phone", "").strip()
+
+    if not city or not state:
+        address_city, address_state = parse_city_state_from_address(project_address)
+        if not city:
+            city = address_city
+        if not state:
+            state = address_state
+
+    scw_task_id = get_custom_field_value(custom_fields, "SCW Task ID")
+    project_manager = get_custom_field_value(custom_fields, "Project Manager")
+    survey_form_link = get_custom_field_value(custom_fields, "Site Survey Form")
+    dropbox_photos_link = get_custom_field_value(custom_fields, "Dropbox Photos Link")
+
+    try:
+        next_project_number = get_next_project_number()
+    except Exception:
+        next_project_number = "ERROR"
+
+    display_site_name = build_request_display_name(site_name, city, state)
+    full_name = f"{next_project_number} Service - {display_site_name}"
+
+    attachment_list = []
+    for att in attachments:
+        attachment_list.append({
+            "id": att.get("id", ""),
+            "title": att.get("title", ""),
+            "url": att.get("url", ""),
+            "extension": att.get("extension", ""),
+            "size": att.get("size", "")
+        })
+
+    return {
+        "request_type": "Service",
+        "clickup_task_id": task_id,
+        "scw_task_id": scw_task_id,
+        "project_manager": project_manager,
+        "client_name": client_name,
+        "site_name": site_name,
+        "city": city,
+        "state": state,
+        "project_address": project_address,
+        "poc_name": poc_name,
+        "poc_email": poc_email,
+        "poc_phone": poc_phone,
+        "task_name": task_name,
+        "status": (task.get("status") or {}).get("status", ""),
+        "survey_form_link": survey_form_link,
+        "dropbox_photos_link": dropbox_photos_link,
+        "attachments": attachment_list,
+        "next_project_number": next_project_number,
+        "suggested_full_name": full_name,
+        "create_scw_provided_documents": False
+    }
+
+
+def save_pending_request_draft(draft: dict):
+    conn = get_conn()
+    cur = conn.cursor()
+
+    existing = cur.execute(
+        "SELECT * FROM pending_scw_requests WHERE clickup_task_id = ?",
+        (draft["clickup_task_id"],)
+    ).fetchone()
+
+    attachments_json = json.dumps(draft.get("attachments", []))
+
+    if existing:
+        cur.execute("""
+            UPDATE pending_scw_requests
+            SET request_type = ?,
+                scw_task_id = ?,
+                project_manager = ?,
+                client_name = ?,
+                site_name = ?,
+                city = ?,
+                state = ?,
+                project_address = ?,
+                poc_name = ?,
+                poc_email = ?,
+                poc_phone = ?,
+                task_name = ?,
+                status = ?,
+                survey_form_link = ?,
+                dropbox_photos_link = ?,
+                attachments_json = ?,
+                next_project_number = ?,
+                suggested_full_name = ?,
+                create_scw_provided_documents = ?,
+                is_approved = 0,
+                approved_at = '',
+                drive_folder_id = '',
+                drive_folder_link = '',
+                scw_documents_folder_id = '',
+                scw_documents_folder_link = '',
+                asana_task_gid = '',
+                asana_task_name = ''
+            WHERE clickup_task_id = ?
+        """, (
+            draft.get("request_type", ""),
+            draft.get("scw_task_id", ""),
+            draft.get("project_manager", ""),
+            draft.get("client_name", ""),
+            draft.get("site_name", ""),
+            draft.get("city", ""),
+            draft.get("state", ""),
+            draft.get("project_address", ""),
+            draft.get("poc_name", ""),
+            draft.get("poc_email", ""),
+            draft.get("poc_phone", ""),
+            draft.get("task_name", ""),
+            draft.get("status", ""),
+            draft.get("survey_form_link", ""),
+            draft.get("dropbox_photos_link", ""),
+            attachments_json,
+            draft.get("next_project_number", ""),
+            draft.get("suggested_full_name", ""),
+            int(bool(draft.get("create_scw_provided_documents", True))),
+            draft["clickup_task_id"]
+        ))
+    else:
+        cur.execute("""
+            INSERT INTO pending_scw_requests (
+                request_type, clickup_task_id, scw_task_id, project_manager,
+                client_name, site_name, city, state, project_address,
+                poc_name, poc_email, poc_phone, task_name, status,
+                survey_form_link, dropbox_photos_link, attachments_json,
+                next_project_number, suggested_full_name,
+                create_scw_provided_documents, is_approved, created_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?)
+        """, (
+            draft.get("request_type", ""),
+            draft["clickup_task_id"],
+            draft.get("scw_task_id", ""),
+            draft.get("project_manager", ""),
+            draft.get("client_name", ""),
+            draft.get("site_name", ""),
+            draft.get("city", ""),
+            draft.get("state", ""),
+            draft.get("project_address", ""),
+            draft.get("poc_name", ""),
+            draft.get("poc_email", ""),
+            draft.get("poc_phone", ""),
+            draft.get("task_name", ""),
+            draft.get("status", ""),
+            draft.get("survey_form_link", ""),
+            draft.get("dropbox_photos_link", ""),
+            attachments_json,
+            draft.get("next_project_number", ""),
+            draft.get("suggested_full_name", ""),
+            int(bool(draft.get("create_scw_provided_documents", True))),
+            utc_now_iso()
+        ))
+
+    conn.commit()
+    row = cur.execute(
+        "SELECT * FROM pending_scw_requests WHERE clickup_task_id = ?",
+        (draft["clickup_task_id"],)
+    ).fetchone()
+    conn.close()
+    return normalize_pending_request_row(row)
 
 
 # -----------------------------
@@ -706,7 +1259,7 @@ def build_ics_text(events: List[dict], host: str) -> str:
 
 
 # -----------------------------
-# HEALTH / ROOT
+# ROOT / HEALTH
 # -----------------------------
 @app.get("/health")
 def health():
@@ -738,12 +1291,8 @@ def test_drive():
 @app.get("/test-asana")
 def test_asana():
     try:
-        test_name = "TEST DELETE ME"
-        response = create_asana_task(test_name)
-        return {
-            "status": "ok",
-            "response": response
-        }
+        response = create_asana_task("TEST DELETE ME")
+        return {"status": "ok", "response": response}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -771,7 +1320,6 @@ def test_clickup_comment(task_id: str):
         data = response.json() if response is not None else None
     except Exception:
         data = {"raw_text": response.text if response is not None else ""}
-
     return {
         "status_code": response.status_code if response else None,
         "comment_id": comment_id,
@@ -780,7 +1328,319 @@ def test_clickup_comment(task_id: str):
 
 
 # -----------------------------
-# SCW JOB REQUEST ROUTES
+# CLICKUP READ ROUTES
+# -----------------------------
+@app.get("/clickup/task/{task_id}")
+def get_clickup_task(task_id: str):
+    status_code, data = get_clickup_task_data(task_id)
+    return {
+        "status_code": status_code,
+        "task_id": task_id,
+        "response": data
+    }
+
+
+@app.get("/clickup/task/{task_id}/comments")
+def clickup_task_comments(task_id: str):
+    status_code, data = get_clickup_task_comments(task_id)
+    return {
+        "status_code": status_code,
+        "task_id": task_id,
+        "response": data
+    }
+
+
+@app.get("/clickup/task/{task_id}/survey-summary")
+def get_clickup_survey_summary(task_id: str):
+    status_code, task = get_clickup_task_data(task_id)
+    if status_code != 200:
+        raise HTTPException(status_code=status_code, detail=task)
+
+    custom_fields = task.get("custom_fields", [])
+    attachments = task.get("attachments", [])
+    survey_fields = extract_survey_comment_fields(task_id, task)
+    city, state = parse_city_state_from_address(survey_fields.get("project_address", ""))
+
+    attachment_list = []
+    for att in attachments:
+        attachment_list.append({
+            "id": att.get("id", ""),
+            "title": att.get("title", ""),
+            "url": att.get("url", ""),
+            "extension": att.get("extension", ""),
+            "size": att.get("size", "")
+        })
+
+    assignees = []
+    for a in task.get("assignees", []):
+        assignees.append({
+            "id": a.get("id", ""),
+            "username": a.get("username", ""),
+            "email": a.get("email", ""),
+            "initials": a.get("initials", "")
+        })
+
+    return {
+        "task_id": task_id,
+        "task_name": task.get("name", ""),
+        "status": (task.get("status") or {}).get("status", ""),
+        "status_color": (task.get("status") or {}).get("color", ""),
+        "list_name": (task.get("list") or {}).get("name", ""),
+        "folder_name": (task.get("folder") or {}).get("name", ""),
+        "space_name": (task.get("space") or {}).get("name", ""),
+        "date_created": task.get("date_created", ""),
+        "date_updated": task.get("date_updated", ""),
+        "description": task.get("description", ""),
+        "priority": (task.get("priority") or {}).get("priority", ""),
+        "url": task.get("url", ""),
+        "client_name": get_custom_field_value(custom_fields, "Client Name"),
+        "site_name": get_custom_field_value(custom_fields, "Site Name"),
+        "address": get_custom_field_value(custom_fields, "Address"),
+        "city": get_custom_field_value(custom_fields, "City"),
+        "state": get_custom_field_value(custom_fields, "State"),
+        "proposal_number": get_custom_field_value(custom_fields, "Proposal Number"),
+        "poc_name": get_custom_field_value(custom_fields, "POC Name"),
+        "poc_phone": get_custom_field_value(custom_fields, "POC Phone"),
+        "poc_email": get_custom_field_value(custom_fields, "POC Email"),
+        "assignees": assignees,
+        "attachments": attachment_list,
+        "parsed_comment_fields": {
+            "client": survey_fields.get("client", ""),
+            "site": survey_fields.get("site", ""),
+            "project_address": survey_fields.get("project_address", ""),
+            "poc_name": survey_fields.get("poc_name", ""),
+            "poc_email": survey_fields.get("poc_email", ""),
+            "poc_phone": survey_fields.get("poc_phone", ""),
+            "city": city,
+            "state": state
+        },
+        "raw_custom_fields": custom_fields
+    }
+
+
+@app.get("/clickup/task/{task_id}/survey-draft")
+def get_clickup_survey_draft(task_id: str):
+    status_code, task = get_clickup_task_data(task_id)
+    if status_code != 200:
+        raise HTTPException(status_code=status_code, detail=task)
+    return build_survey_draft_from_task(task_id, task)
+
+
+@app.get("/clickup/task/{task_id}/service-draft")
+def get_clickup_service_draft(task_id: str):
+    status_code, task = get_clickup_task_data(task_id)
+    if status_code != 200:
+        raise HTTPException(status_code=status_code, detail=task)
+    return build_service_draft_from_task(task_id, task)
+
+
+# -----------------------------
+# SCW PENDING REQUEST ROUTES
+# -----------------------------
+@app.post("/scw/pull-survey-task/{task_id}")
+def pull_single_survey_task(task_id: str):
+    status_code, task = get_clickup_task_data(task_id)
+    if status_code != 200:
+        raise HTTPException(status_code=status_code, detail=task)
+
+    draft = build_survey_draft_from_task(task_id, task)
+    saved = save_pending_request_draft(draft)
+    return {"status": "saved", "pending_request": saved}
+
+
+@app.post("/scw/pull-service-task/{task_id}")
+def pull_single_service_task(task_id: str):
+    status_code, task = get_clickup_task_data(task_id)
+    if status_code != 200:
+        raise HTTPException(status_code=status_code, detail=task)
+
+    draft = build_service_draft_from_task(task_id, task)
+    saved = save_pending_request_draft(draft)
+    return {"status": "saved", "pending_request": saved}
+
+
+@app.post("/scw/pull-new-surveys")
+def pull_new_surveys():
+    if not CLICKUP_SURVEY_LIST_ID:
+        raise HTTPException(status_code=400, detail="CLICKUP_SURVEY_LIST_ID is not set")
+
+    status_code, data = get_clickup_list_tasks(CLICKUP_SURVEY_LIST_ID)
+    if status_code != 200:
+        raise HTTPException(status_code=status_code, detail=data)
+
+    tasks = data.get("tasks", [])
+    saved = []
+
+    for task in tasks:
+        task_status = ((task.get("status") or {}).get("status") or "").strip().lower()
+        if task_status != "site visit requested":
+            continue
+
+        task_id = task.get("id", "")
+        if not task_id:
+            continue
+
+        task_status_code, full_task = get_clickup_task_data(task_id)
+        if task_status_code != 200:
+            continue
+
+        draft = build_survey_draft_from_task(task_id, full_task)
+        saved_row = save_pending_request_draft(draft)
+        saved.append(saved_row)
+
+    return {"status": "ok", "saved_count": len(saved), "items": saved}
+
+
+@app.post("/scw/pull-new-services")
+def pull_new_services():
+    if not CLICKUP_SURVEY_LIST_ID:
+        raise HTTPException(status_code=400, detail="CLICKUP_SURVEY_LIST_ID is not set")
+
+    status_code, data = get_clickup_list_tasks(CLICKUP_SURVEY_LIST_ID)
+    if status_code != 200:
+        raise HTTPException(status_code=status_code, detail=data)
+
+    tasks = data.get("tasks", [])
+    saved = []
+
+    for task in tasks:
+        task_status = ((task.get("status") or {}).get("status") or "").strip().lower()
+        if task_status != "schedule work":
+            continue
+
+        task_id = task.get("id", "")
+        if not task_id:
+            continue
+
+        task_status_code, full_task = get_clickup_task_data(task_id)
+        if task_status_code != 200:
+            continue
+
+        draft = build_service_draft_from_task(task_id, full_task)
+        saved_row = save_pending_request_draft(draft)
+        saved.append(saved_row)
+
+    return {"status": "ok", "saved_count": len(saved), "items": saved}
+
+
+@app.get("/scw/pending-requests")
+def get_pending_requests():
+    conn = get_conn()
+    rows = conn.execute("""
+        SELECT * FROM pending_scw_requests
+        WHERE is_approved = 0
+        ORDER BY created_at DESC, id DESC
+    """).fetchall()
+    conn.close()
+    return [normalize_pending_request_row(r) for r in rows]
+
+
+@app.post("/scw/approve-pending-request")
+def approve_pending_request(payload: ApprovePendingRequestPayload):
+    conn = get_conn()
+    cur = conn.cursor()
+
+    row = cur.execute(
+        "SELECT * FROM pending_scw_requests WHERE id = ?",
+        (payload.pending_request_id,)
+    ).fetchone()
+
+    if not row:
+        conn.close()
+        raise HTTPException(status_code=404, detail="Pending request not found")
+
+    pending = dict(row)
+
+    try:
+        site_name = (pending.get("site_name") or "").strip()
+        city = (pending.get("city") or "").strip()
+        state = (pending.get("state") or "").strip()
+
+        display_site = build_request_display_name(site_name, city, state)
+        if not display_site:
+            raise Exception("Missing site name")
+
+        next_project_number = get_next_project_number()
+        request_type = (pending.get("request_type") or "").strip().title()
+        final_name = f"{next_project_number} {request_type} - {display_site}"
+
+        main_folder = create_drive_folder(final_name, GOOGLE_DRIVE_PARENT_FOLDER_ID)
+
+        subfolder = None
+        if int(pending.get("create_scw_provided_documents", 1)) == 1:
+            subfolder = create_scw_provided_documents_subfolder(main_folder["id"])
+
+        asana_task = create_asana_task(final_name)
+        asana_gid = ((asana_task or {}).get("data") or {}).get("gid", "")
+
+        cur.execute("""
+            UPDATE pending_scw_requests
+            SET is_approved = 1,
+                approved_at = ?,
+                next_project_number = ?,
+                suggested_full_name = ?,
+                drive_folder_id = ?,
+                drive_folder_link = ?,
+                scw_documents_folder_id = ?,
+                scw_documents_folder_link = ?,
+                asana_task_gid = ?,
+                asana_task_name = ?
+            WHERE id = ?
+        """, (
+            utc_now_iso(),
+            next_project_number,
+            final_name,
+            main_folder.get("id", ""),
+            main_folder.get("webViewLink", ""),
+            (subfolder or {}).get("id", "") if subfolder else "",
+            (subfolder or {}).get("webViewLink", "") if subfolder else "",
+            asana_gid,
+            final_name,
+            payload.pending_request_id
+        ))
+
+        conn.commit()
+
+        updated = cur.execute(
+            "SELECT * FROM pending_scw_requests WHERE id = ?",
+            (payload.pending_request_id,)
+        ).fetchone()
+        conn.close()
+
+        return {
+            "status": "approved",
+            "pending_request": normalize_pending_request_row(updated)
+        }
+    except Exception as e:
+        conn.close()
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.delete("/scw/pending-requests/{pending_request_id}")
+def delete_pending_request(pending_request_id: int):
+    conn = get_conn()
+    cur = conn.cursor()
+
+    existing = cur.execute(
+        "SELECT * FROM pending_scw_requests WHERE id = ?",
+        (pending_request_id,)
+    ).fetchone()
+
+    if not existing:
+        conn.close()
+        raise HTTPException(status_code=404, detail="Pending request not found")
+
+    cur.execute(
+        "DELETE FROM pending_scw_requests WHERE id = ?",
+        (pending_request_id,)
+    )
+    conn.commit()
+    conn.close()
+    return {"message": "Pending request deleted."}
+
+
+# -----------------------------
+# MANUAL SCW ROUTES
 # -----------------------------
 @app.post("/scw/next-name")
 def scw_next_name(data: ProjectNameRequest):
@@ -788,7 +1648,6 @@ def scw_next_name(data: ProjectNameRequest):
         next_number = get_next_project_number()
         request_type_clean = data.request_type.strip().title()
         full_name = f"{next_number} {request_type_clean} - {data.site_name.strip()}, {data.city.strip()} {data.state.strip()}"
-
         return {
             "status": "ok",
             "next_project_number": next_number,
@@ -820,10 +1679,7 @@ def scw_create_drive_folder(data: CreateDriveFolderRequest):
 def scw_create_asana_task(data: CreateAsanaTaskRequest):
     try:
         task = create_asana_task(data.task_name)
-        return {
-            "status": "ok",
-            "task": task
-        }
+        return {"status": "ok", "task": task}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -1335,7 +2191,7 @@ def reset_bot_comments(payload: ResetBotCommentsPayload):
 
 
 # -----------------------------
-# CALENDAR SUBSCRIPTION FEED
+# CALENDAR FEED
 # -----------------------------
 @app.get("/calendar.ics")
 def calendar_ics():
@@ -1413,6 +2269,10 @@ def serve_technicians():
 @app.get("/scw-requests.html")
 def serve_scw_requests():
     return FileResponse(os.path.join(FRONTEND_DIR, "scw-requests.html"))
+
+@app.get("/survey-request-email.html")
+def serve_survey_request_email():
+    return FileResponse(os.path.join(FRONTEND_DIR, "survey-request-email.html"))    
 
 
 @app.get("/")
