@@ -934,56 +934,65 @@ def build_survey_draft_from_task(task_id: str, task: dict):
     poc_email = survey_fields.get("poc_email", "").strip()
     poc_phone = survey_fields.get("poc_phone", "").strip()
 
-    site_name = ""
-    city = ""
-    state = ""
-
-    if raw_site:
-        cleaned_site = raw_site.strip()
-
-    if " - " in cleaned_site:
-        parts = cleaned_site.split(" - ", 1)
-        site_name = parts[0].strip()
-        city = parts[1].strip()
-    else:
-        site_name = cleaned_site
-
     address_city, address_state = parse_city_state_from_address(project_address)
 
-    if address_city:
-        city = address_city
-    if address_state:
-        state = address_state
+    site_name = raw_site.strip()
+    city = address_city or ""
+    state = address_state or ""
 
-    if city:
-        city_pattern = re.escape(city)
-        site_name = re.sub(rf"[-,]?\s*.*\b{city_pattern}\b.*$", "", site_name, flags=re.I).strip()
+    if site_name:
+        normalized_site = site_name.replace("–", "-").replace("—", "-").strip()
+        normalized_client = client_name.replace("–", "-").replace("—", "-").strip()
 
-    if project_address:
-        street_only = re.sub(
-            r",\s*[A-Za-z .'-]+,\s*[A-Z]{2}\s+\d{5}(?:-\d{4})?$",
-            "",
-            project_address.strip()
-        ).strip()
-        if street_only:
+        # If site starts with client name and the rest looks like an address, use client name only.
+        if normalized_client and normalized_site.lower().startswith(normalized_client.lower()):
+            remainder = normalized_site[len(normalized_client):].strip(" -,")
+
+            address_like = False
+            if remainder:
+                if re.match(r"^\d+", remainder):
+                    address_like = True
+                elif project_address and remainder.lower() in project_address.lower():
+                    address_like = True
+                elif address_city and address_city.lower() in remainder.lower():
+                    address_like = True
+
+            if address_like:
+                site_name = client_name
+            else:
+                site_name = normalized_site
+        else:
+            site_name = normalized_site
+
+        # Remove full project address if it somehow still got appended
+        if project_address:
+            street_only = re.sub(
+                r",\s*[A-Za-z .'-]+,\s*[A-Z]{2}\s+\d{5}(?:-\d{4})?$",
+                "",
+                project_address.strip()
+            ).strip()
+
+            if street_only:
+                site_name = re.sub(
+                    rf"\s*[-,]?\s*{re.escape(street_only)}.*$",
+                    "",
+                    site_name,
+                    flags=re.I
+                ).strip()
+
+        # Remove city if it somehow still got appended
+        if city:
             site_name = re.sub(
-                rf"[-,]?\s*{re.escape(street_only)}.*$",
+                rf"\s*[-,]?\s*{re.escape(city)}.*$",
                 "",
                 site_name,
                 flags=re.I
             ).strip()
 
-    site_name = re.sub(r"\s{2,}", " ", site_name).strip(" -,")
-
-    address_city, address_state = parse_city_state_from_address(project_address)
-
-    if not city:
-        city = address_city
-
-    state = address_state
+        site_name = re.sub(r"\s{2,}", " ", site_name).strip(" -,")
 
     if not site_name:
-        site_name = task_name.split(" - ")[0].strip() if " - " in task_name else task_name.strip()
+        site_name = client_name or (task_name.split(" - ")[0].strip() if " - " in task_name else task_name.strip())
 
     scw_task_id = get_custom_field_value(custom_fields, "SCW Task ID")
     project_manager = get_custom_field_value(custom_fields, "Project Manager")
