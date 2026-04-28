@@ -1238,7 +1238,9 @@ def list_active_project_folders():
             f"and trashed = false"
         ),
         fields="files(id, name, createdTime)",
-        pageSize=1000
+        pageSize=1000,
+        supportsAllDrives=True,
+        includeItemsFromAllDrives=True
     ).execute()
     return results.get("files", [])
 
@@ -1270,7 +1272,8 @@ def create_drive_folder(name: str, parent_id: str):
     }
     folder = service.files().create(
         body=file_metadata,
-        fields="id, name, webViewLink"
+        fields="id, name, webViewLink",
+        supportsAllDrives=True
     ).execute()
     return folder
 
