@@ -939,12 +939,41 @@ def build_survey_draft_from_task(task_id: str, task: dict):
     state = ""
 
     if raw_site:
-        if " - " in raw_site:
-            parts = raw_site.split(" - ", 1)
-            site_name = parts[0].strip()
-            city = parts[1].strip()
-        else:
-            site_name = raw_site.strip()
+    cleaned_site = raw_site.strip()
+
+    if " - " in cleaned_site:
+        parts = cleaned_site.split(" - ", 1)
+        site_name = parts[0].strip()
+        city = parts[1].strip()
+    else:
+        site_name = cleaned_site
+
+    address_city, address_state = parse_city_state_from_address(project_address)
+
+    if address_city:
+        city = address_city
+    if address_state:
+        state = address_state
+
+    if city:
+        city_pattern = re.escape(city)
+        site_name = re.sub(rf"[-,]?\s*.*\b{city_pattern}\b.*$", "", site_name, flags=re.I).strip()
+
+    if project_address:
+        street_only = re.sub(
+            r",\s*[A-Za-z .'-]+,\s*[A-Z]{2}\s+\d{5}(?:-\d{4})?$",
+            "",
+            project_address.strip()
+        ).strip()
+        if street_only:
+            site_name = re.sub(
+                rf"[-,]?\s*{re.escape(street_only)}.*$",
+                "",
+                site_name,
+                flags=re.I
+            ).strip()
+
+    site_name = re.sub(r"\s{2,}", " ", site_name).strip(" -,")
 
     address_city, address_state = parse_city_state_from_address(project_address)
 
