@@ -892,16 +892,17 @@ def parse_city_state_from_address(address: str) -> Tuple[str, str]:
     if not address:
         return "", ""
 
-    match = re.search(r"([A-Za-z .'-]+),\s*([A-Z]{2})\s+\d{5}(?:-\d{4})?$", address)
+    address = address.strip()
+
+    match = re.search(r",\s*([A-Za-z .'-]+),\s*([A-Z]{2})\s+\d{5}(?:-\d{4})?$", address)
     if match:
         return match.group(1).strip(), match.group(2).strip()
 
-    match = re.search(r"([A-Za-z .'-]+)\s+([A-Z]{2})\s+\d{5}(?:-\d{4})?$", address)
+    match = re.search(r"\b([A-Za-z .'-]+),\s*([A-Z]{2})\s+\d{5}(?:-\d{4})?$", address)
     if match:
         city = match.group(1).strip()
         state = match.group(2).strip()
-        if "," in city:
-            city = city.split(",")[-1].strip()
+        city = city.split()[-1] if city else ""
         return city, state
 
     return "", ""
