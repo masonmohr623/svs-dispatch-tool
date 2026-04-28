@@ -474,6 +474,7 @@
 
         <div class="actions">
           <button class="action-btn primary" onclick="generateService()">Generate Template</button>
+          <button class="action-btn secondary" onclick="sendServiceToClickUp()">Send to ClickUp</button>
           <button class="action-btn secondary" onclick="copySubject()">Copy Subject</button>
           <button class="action-btn secondary" onclick="copyBody()">Copy Email</button>
           <button class="action-btn secondary" onclick="openOutlook()">Open in Outlook</button>
@@ -877,6 +878,26 @@ If any of the information above needs correction, please email me as soon as pos
 Thank you,`;
     }
 
+    function buildSingleSiteClickUpComment(projectType, techName, techPhone, site) {
+      return `The technician is confirmed for ${buildArrivalText(site)} for arrival on site.
+
+Technician information
+${techName}
+Phone: ${techPhone}
+
+Project Scope
+${getScopeLabel(projectType)}
+
+Site Contact Information
+Name: ${site.contact_name}
+Email: ${site.contact_email}
+Phone: ${site.contact_phone}
+
+Client: ${site.client}
+Site: ${site.site}
+Project Address: ${site.address}`;
+    }
+
     async function saveEventForSite(site, projectType, techName, techPhone) {
       const converted = buildConvertedSchedule(site);
 
@@ -926,6 +947,32 @@ Thank you,`;
       }
     }
 
+    async function sendServiceSiteToClickUp(site, projectType, techName, techPhone) {
+      const commentText = buildSingleSiteClickUpComment(projectType, techName, techPhone, site);
+
+      const res = await fetch(`${API_URL}/clickup/send-template-update`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          template_type: "service",
+          project_type: projectType,
+          clickup_task_id: site.task_id,
+          date: site.date,
+          time: site.time,
+          arrival_type: site.arrival_type,
+          window_start: site.window_start,
+          window_end: site.window_end,
+          address: site.address,
+          comment_text: commentText
+        })
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.detail || "Failed to send service update to ClickUp.");
+      }
+    }
+
     async function generateService() {
       try {
         await autoSaveTech();
@@ -969,6 +1016,40 @@ Thank you,`;
       } catch (error) {
         console.error(error);
         alert(`Service template failed: ${error.message}`);
+      }
+    }
+
+    async function sendServiceToClickUp() {
+      try {
+        await autoSaveTech();
+
+        const projectType = document.getElementById("project_type").value;
+        const isMulti = document.getElementById("site_count").value === "2";
+        const techName = document.getElementById("tech_name").value.trim();
+        const techPhone = document.getElementById("tech_phone").value.trim();
+
+        if (!techName || !techPhone) {
+          alert("Please enter the technician name and phone.");
+          return;
+        }
+
+        const site1 = getSiteData(1);
+        validateSite(site1, "Site 1");
+
+        if (isMulti) {
+          const site2 = getSiteData(2);
+          validateSite(site2, "Site 2");
+
+          await sendServiceSiteToClickUp(site1, projectType, techName, techPhone);
+          await sendServiceSiteToClickUp(site2, projectType, techName, techPhone);
+        } else {
+          await sendServiceSiteToClickUp(site1, projectType, techName, techPhone);
+        }
+
+        alert("Service update sent to ClickUp.");
+      } catch (error) {
+        console.error(error);
+        alert(`Send to ClickUp failed: ${error.message}`);
       }
     }
 

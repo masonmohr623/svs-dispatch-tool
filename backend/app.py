@@ -5,9 +5,10 @@ import sqlite3
 import uuid
 from datetime import datetime, timedelta
 from typing import List, Optional, Tuple
+from zoneinfo import ZoneInfo
 
 import requests
-from fastapi import FastAPI, HTTPException, Response
+from fastapi import Body, FastAPI, HTTPException, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
@@ -480,7 +481,7 @@ def build_installation_message(data: GenerateTemplateIn) -> str:
 
 The technician is confirmed for {pretty_date(data.date)} {time_phrase(data)} for arrival on site.
 
-Please have a dedicated Point of Contact available on-site. We ask that the Point of Contact walk the site with the technician prior to work beginning so all final camera or device locations can be confirmed before installation starts. Any requested changes should be discussed before work begins.
+Please have a dedicated Point of Contact available once we arrive on-site. Before the technician begins work, please have your Point of Contact walk the site with them to confirm final device placement. If any changes need to be made, please communicate them before the work begins.
 
 Technician information
 {data.tech_name}
@@ -505,12 +506,99 @@ If any of the information above needs correction, please email me as soon as pos
 Thank you,"""
 
 
+def parse_time_12h(time_str: str) -> Optional[Tuple[int, int]]:
+    if not time_str:
+        return None
+    match = re.match(r"^\s*(\d{1,2}):(\d{2})\s*(AM|PM)\s*$", time_str, flags=re.I)
+    if not match:
+        return None
+
+    hour = int(match.group(1))
+    minute = int(match.group(2))
+    meridiem = match.group(3).upper()
+
+    if meridiem == "AM" and hour == 12:
+        hour = 0
+    elif meridiem == "PM" and hour != 12:
+        hour += 12
+
+    return hour, minute
+
+
+def infer_time_zone_from_address(address: str) -> str:
+    upper = str(address or "").upper().strip()
+
+    state_map = {
+        "AL": "America/Chicago", "AK": "America/Anchorage", "AZ": "America/Phoenix", "AR": "America/Chicago",
+        "CA": "America/Los_Angeles", "CO": "America/Denver", "CT": "America/New_York", "DE": "America/New_York",
+        "FL": "America/New_York", "GA": "America/New_York", "HI": "Pacific/Honolulu", "ID": "America/Denver",
+        "IL": "America/Chicago", "IN": "America/New_York", "IA": "America/Chicago", "KS": "America/Chicago",
+        "KY": "America/New_York", "LA": "America/Chicago", "ME": "America/New_York", "MD": "America/New_York",
+        "MA": "America/New_York", "MI": "America/New_York", "MN": "America/Chicago", "MS": "America/Chicago",
+        "MO": "America/Chicago", "MT": "America/Denver", "NE": "America/Chicago", "NV": "America/Los_Angeles",
+        "NH": "America/New_York", "NJ": "America/New_York", "NM": "America/Denver", "NY": "America/New_York",
+        "NC": "America/New_York", "ND": "America/Chicago", "OH": "America/New_York", "OK": "America/Chicago",
+        "OR": "America/Los_Angeles", "PA": "America/New_York", "RI": "America/New_York", "SC": "America/New_York",
+        "SD": "America/Chicago", "TN": "America/Chicago", "TX": "America/Chicago", "UT": "America/Denver",
+        "VT": "America/New_York", "VA": "America/New_York", "WA": "America/Los_Angeles", "WV": "America/New_York",
+        "WI": "America/Chicago", "WY": "America/Denver"
+    }
+
+    abbrev_match = re.search(
+        r"\b(AL|AK|AZ|AR|CA|CO|CT|DE|FL|GA|HI|ID|IL|IN|IA|KS|KY|LA|ME|MD|MA|MI|MN|MS|MO|MT|NE|NV|NH|NJ|NM|NY|NC|ND|OH|OK|OR|PA|RI|SC|SD|TN|TX|UT|VT|VA|WA|WV|WI|WY)\b(?:\s+\d{5}(?:-\d{4})?)?\s*$",
+        upper
+    )
+    if abbrev_match:
+        return state_map.get(abbrev_match.group(1), "America/Chicago")
+
+    full_name_map = {
+        "ALABAMA": "AL", "ALASKA": "AK", "ARIZONA": "AZ", "ARKANSAS": "AR", "CALIFORNIA": "CA",
+        "COLORADO": "CO", "CONNECTICUT": "CT", "DELAWARE": "DE", "FLORIDA": "FL", "GEORGIA": "GA",
+        "HAWAII": "HI", "IDAHO": "ID", "ILLINOIS": "IL", "INDIANA": "IN", "IOWA": "IA",
+        "KANSAS": "KS", "KENTUCKY": "KY", "LOUISIANA": "LA", "MAINE": "ME", "MARYLAND": "MD",
+        "MASSACHUSETTS": "MA", "MICHIGAN": "MI", "MINNESOTA": "MN", "MISSISSIPPI": "MS", "MISSOURI": "MO",
+        "MONTANA": "MT", "NEBRASKA": "NE", "NEVADA": "NV", "NEW HAMPSHIRE": "NH", "NEW JERSEY": "NJ",
+        "NEW MEXICO": "NM", "NEW YORK": "NY", "NORTH CAROLINA": "NC", "NORTH DAKOTA": "ND", "OHIO": "OH",
+        "OKLAHOMA": "OK", "OREGON": "OR", "PENNSYLVANIA": "PA", "RHODE ISLAND": "RI", "SOUTH CAROLINA": "SC",
+        "SOUTH DAKOTA": "SD", "TENNESSEE": "TN", "TEXAS": "TX", "UTAH": "UT", "VERMONT": "VT",
+        "VIRGINIA": "VA", "WASHINGTON": "WA", "WEST VIRGINIA": "WV", "WISCONSIN": "WI", "WYOMING": "WY"
+    }
+
+    for full_name, abbr in full_name_map.items():
+        if full_name in upper:
+            return state_map.get(abbr, "America/Chicago")
+
+    return "America/Chicago"
+
+
+def zoned_datetime_to_datetime(date_str: str, time_str: str, time_zone: str):
+    parsed = parse_time_12h(time_str)
+    if not parsed:
+        return None
+
+    try:
+        year, month, day = [int(part) for part in date_str.split("-")]
+    except Exception:
+        return None
+
+    hours, minutes = parsed
+    naive = datetime(year, month, day, hours, minutes)
+    try:
+        zone = ZoneInfo(time_zone)
+    except Exception:
+        zone = ZoneInfo("America/Chicago")
+    return naive.replace(tzinfo=zone)
+
+
 # -----------------------------
 # CLICKUP HELPERS
 # -----------------------------
 def clickup_headers():
+    token = os.getenv("CLICKUP_API_TOKEN", "").strip() or CLICKUP_API_TOKEN.strip()
+    if not token:
+        raise HTTPException(status_code=500, detail="CLICKUP_API_TOKEN is not set.")
     return {
-        "Authorization": CLICKUP_API_TOKEN,
+        "Authorization": token,
         "Content-Type": "application/json",
     }
 
@@ -585,6 +673,59 @@ def get_clickup_list_tasks(list_id: str):
         data = {"raw_text": response.text}
 
     return response.status_code, data
+
+
+def clickup_set_task_status(task_id: str, status: str):
+    url = f"https://api.clickup.com/api/v2/task/{task_id}"
+    response = requests.put(
+        url,
+        headers=clickup_headers(),
+        json={"status": status},
+        timeout=30
+    )
+    if not response.ok:
+        raise HTTPException(status_code=500, detail=f"ClickUp status update failed: {response.text}")
+    try:
+        return response.json()
+    except Exception:
+        return {"raw_text": response.text}
+
+
+def clickup_set_task_due_date(task_id: str, due_date_ms: int):
+    url = f"https://api.clickup.com/api/v2/task/{task_id}"
+    response = requests.put(
+        url,
+        headers=clickup_headers(),
+        json={
+            "due_date": due_date_ms,
+            "due_date_time": True,
+            "start_date": None,
+            "start_date_time": False
+        },
+        timeout=30
+    )
+    if not response.ok:
+        raise HTTPException(status_code=500, detail=f"ClickUp date update failed: {response.text}")
+    try:
+        return response.json()
+    except Exception:
+        return {"raw_text": response.text}
+
+
+def clickup_create_task_comment(task_id: str, comment_text: str):
+    url = f"https://api.clickup.com/api/v2/task/{task_id}/comment"
+    response = requests.post(
+        url,
+        headers=clickup_headers(),
+        json={"comment_text": comment_text, "notify_all": False},
+        timeout=30
+    )
+    if not response.ok:
+        raise HTTPException(status_code=500, detail=f"ClickUp comment failed: {response.text}")
+    try:
+        return response.json()
+    except Exception:
+        return {"raw_text": response.text}
 
 
 def get_custom_field_value(custom_fields, field_name: str):
@@ -1139,25 +1280,6 @@ def ics_escape(value: str) -> str:
     value = value.replace(",", r"\,")
     value = value.replace("\n", r"\n")
     return value
-
-
-def parse_time_12h(time_str: str) -> Optional[Tuple[int, int]]:
-    if not time_str:
-        return None
-    match = re.match(r"^\s*(\d{1,2}):(\d{2})\s*(AM|PM)\s*$", time_str, flags=re.I)
-    if not match:
-        return None
-
-    hour = int(match.group(1))
-    minute = int(match.group(2))
-    meridiem = match.group(3).upper()
-
-    if meridiem == "AM" and hour == 12:
-        hour = 0
-    elif meridiem == "PM" and hour != 12:
-        hour += 12
-
-    return hour, minute
 
 
 def build_event_datetime(date_str: str, time_str: str) -> Optional[datetime]:
@@ -1957,6 +2079,67 @@ def generate_installation(data: GenerateTemplateIn):
 
 
 # -----------------------------
+# CLICKUP SEND ROUTE FOR TEMPLATES
+# -----------------------------
+@app.post("/clickup/send-template-update")
+def send_template_update(payload: dict = Body(...)):
+    template_type = str(payload.get("template_type", "")).strip().lower()
+    project_type = str(payload.get("project_type", "")).strip().lower()
+    task_id = str(payload.get("clickup_task_id", "")).strip()
+    arrival_type = str(payload.get("arrival_type", "exact")).strip().lower()
+    address = str(payload.get("address", "")).strip()
+    comment_text = str(payload.get("comment_text", "")).strip()
+
+    date_str = str(payload.get("date", "")).strip()
+    time_str = str(payload.get("time", "")).strip()
+    window_start = str(payload.get("window_start", "")).strip()
+    window_end = str(payload.get("window_end", "")).strip()
+
+    if not task_id:
+        raise HTTPException(status_code=400, detail="Missing ClickUp task ID.")
+
+    if not date_str:
+        raise HTTPException(status_code=400, detail="Missing site date.")
+
+    if arrival_type == "window":
+        if not window_end:
+            raise HTTPException(status_code=400, detail="Missing window end time.")
+        due_source_time = window_end
+    else:
+        if not time_str:
+            raise HTTPException(status_code=400, detail="Missing site time.")
+        due_source_time = time_str
+
+    site_timezone = infer_time_zone_from_address(address)
+    due_dt = zoned_datetime_to_datetime(date_str, due_source_time, site_timezone)
+    if not due_dt:
+        raise HTTPException(status_code=400, detail="Could not convert site date/time.")
+
+    due_date_ms = int(due_dt.timestamp() * 1000)
+
+    if template_type == "service":
+        new_status = "Upcoming / Work Scheduled"
+    elif template_type in {"survey", "installation"}:
+        new_status = "Site Visit Scheduled"
+    else:
+        raise HTTPException(status_code=400, detail="Invalid template type.")
+
+    clickup_set_task_status(task_id, new_status)
+    clickup_set_task_due_date(task_id, due_date_ms)
+
+    if comment_text:
+        clickup_create_task_comment(task_id, comment_text)
+
+    return {
+        "success": True,
+        "task_id": task_id,
+        "status": new_status,
+        "due_date_ms": due_date_ms,
+        "project_type": project_type
+    }
+
+
+# -----------------------------
 # CHECK-IN / CHECK-OUT
 # -----------------------------
 @app.post("/send-checkin")
@@ -2044,9 +2227,12 @@ def send_checkout(payload: CheckoutPayload):
         raise HTTPException(status_code=404, detail="Event not found")
 
     event_data = dict(event)
-    comment = (
-        f"Status update: The technician is off-site and checked out at "
-        f"{payload.check_out_time} (Local Time). Survey documents will be available once they have been processed."
+    if (event_data.get("template_type") or "").strip().lower() == "service":
+        comment = "Status update: The technician is off-site and checked out. Service notes will be provided once they have been received."
+    else:
+        comment = (
+            f"Status update: The technician is off-site and checked out at "
+            f"{payload.check_out_time} (Local Time). Survey documents will be available once they have been processed."
     )
 
     try:
@@ -2220,7 +2406,10 @@ def calendar_ics():
 # -----------------------------
 @app.get("/svs-logo.png")
 def serve_logo():
-    return FileResponse(os.path.join(FRONTEND_DIR, "svs-logo.png"))
+    logo_path = os.path.join(FRONTEND_DIR, "svs-logo.png")
+    if os.path.exists(logo_path):
+        return FileResponse(logo_path)
+    raise HTTPException(status_code=404, detail=f"File at path {logo_path} does not exist.")
 
 
 @app.get("/favicon.ico")
@@ -2270,9 +2459,10 @@ def serve_technicians():
 def serve_scw_requests():
     return FileResponse(os.path.join(FRONTEND_DIR, "scw-requests.html"))
 
+
 @app.get("/survey-request-email.html")
 def serve_survey_request_email():
-    return FileResponse(os.path.join(FRONTEND_DIR, "survey-request-email.html"))    
+    return FileResponse(os.path.join(FRONTEND_DIR, "survey-request-email.html"))
 
 
 @app.get("/")

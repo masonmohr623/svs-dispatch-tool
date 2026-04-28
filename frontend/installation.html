@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Dispatch Service Confirmation Template</title>
+  <title>Dispatch Installation Confirmation Template</title>
   <style>
     :root {
       --svs-dark: #243746;
@@ -254,7 +254,7 @@
       <div class="brand">
         <img src="./svs-logo.png" alt="SVS Logo">
         <div class="brand-text">
-          <h1>Dispatch Service Confirmation</h1>
+          <h1>Dispatch Installation Confirmation</h1>
           <p>Secure Vision Solutions</p>
         </div>
       </div>
@@ -262,7 +262,7 @@
       <div class="topbar-right">
         <button class="nav-btn" onclick="goTo('index.html')">Home</button>
         <button class="nav-btn" onclick="goTo('dispatch.html')">Survey</button>
-        <button class="nav-btn" onclick="goTo('installation.html')">Installation</button>
+        <button class="nav-btn" onclick="goTo('service.html')">Service</button>
         <button class="nav-btn" onclick="goTo('calendar.html')">Calendar</button>
         <button class="nav-btn" onclick="goTo('checkin.html')">Check-In Board</button>
         <button class="nav-btn" onclick="goTo('technicians.html')">Technicians</button>
@@ -525,7 +525,8 @@
         </div>
 
         <div class="actions">
-          <button class="action-btn primary" onclick="generateService()">Generate Template</button>
+          <button class="action-btn primary" onclick="generateInstallation()">Generate Template</button>
+          <button class="action-btn secondary" onclick="sendInstallationToClickUp()">Send to ClickUp</button>
           <button class="action-btn secondary" onclick="copySubject()">Copy Subject</button>
           <button class="action-btn secondary" onclick="copyBody()">Copy Email</button>
           <button class="action-btn secondary" onclick="openOutlook()">Open in Outlook</button>
@@ -733,7 +734,7 @@
     }
 
     function zonedDateTimeToDate(dateStr, timeStr, timeZone) {
-      const [year, month, day] = dateStr.split("-").map(Number);
+      const [year, month, day] = String(dateStr || "").split("-").map(Number);
       const parsedTime = parseTime12(timeStr);
       if (!year || !month || !day || !parsedTime) return null;
 
@@ -808,25 +809,25 @@
     }
 
     function getScopeLabel(projectType) {
-      if (projectType === "access_control") return "Service Access Control System";
-      if (projectType === "both") return "Service IP Camera and Access Control System";
-      return "Service IP Camera System";
+      if (projectType === "access_control") return "Access Control Installation";
+      if (projectType === "both") return "IP Camera and Access Control Installation";
+      return "IP Camera Installation";
     }
 
     function getSubjectPrefix(projectType, isMulti) {
       if (projectType === "access_control") {
         return isMulti
-          ? "SCW Access Control Services Confirmed"
-          : "SCW Access Control Service Confirmed";
+          ? "SCW Access Control Installations Confirmed"
+          : "SCW Access Control Installation Confirmed";
       }
       if (projectType === "both") {
         return isMulti
-          ? "SCW IP Camera / Access Control Services Confirmed"
-          : "SCW IP Camera / Access Control Service Confirmed";
+          ? "SCW IP Camera / Access Control Installations Confirmed"
+          : "SCW IP Camera / Access Control Installation Confirmed";
       }
       return isMulti
-        ? "SCW IP Camera Services Confirmed"
-        : "SCW IP Camera Service Confirmed";
+        ? "SCW IP Camera Installations Confirmed"
+        : "SCW IP Camera Installation Confirmed";
     }
 
     function buildArrivalText(site) {
@@ -905,6 +906,8 @@ Access Control Proposal #: ${site.access_control_proposal}`;
 
 The technician is confirmed for ${buildArrivalText(site)} for arrival on site.
 
+Please have a dedicated Point of Contact available once we arrive on-site. Before the technician begins work, please have your Point of Contact walk the site with them to confirm final device placement. If any changes need to be made, please communicate them before the work begins.
+
 Technician information
 ${techName}
 Phone: ${techPhone}
@@ -933,7 +936,7 @@ Thank you,`;
 
       return `Good ${greeting} everyone,
 
-The technician is confirmed for the following service appointments.
+The technician is confirmed for the following installation appointments.
 
 Technician information
 ${techName}
@@ -973,9 +976,33 @@ Project Address: ${site2.address}
 
 ${buildProposalBlock(site2, projectType)}
 
+Please have a dedicated Point of Contact available once we arrive on-site. Before the technician begins work, please have your Point of Contact walk the site with them to confirm final device placement. If any changes need to be made, please communicate them before the work begins.
+
 If any of the information above needs correction, please email me as soon as possible.
 
 Thank you,`;
+    }
+
+    function buildSingleSiteClickUpComment(projectType, techName, techPhone, site) {
+      return `The technician is confirmed for ${buildArrivalText(site)} for arrival on site.
+
+Technician information
+${techName}
+Phone: ${techPhone}
+
+Project Scope
+${getScopeLabel(projectType)}
+
+Site Contact Information
+Name: ${site.contact_name}
+Email: ${site.contact_email}
+Phone: ${site.contact_phone}
+
+Client: ${site.client}
+Site: ${site.site}
+Project Address: ${site.address}
+
+${buildProposalBlock(site, projectType)}`;
     }
 
     async function saveEventForSite(site, projectType, techName, techPhone) {
@@ -992,7 +1019,7 @@ Thank you,`;
         contact_phone: site.contact_phone,
         proposal: site.proposal,
         task_id: site.task_id,
-        template_type: "Service",
+        template_type: "Installation",
         project_type: projectType,
         date: converted.calendarDate,
         site_date: site.date,
@@ -1027,7 +1054,42 @@ Thank you,`;
       }
     }
 
-    async function generateService() {
+    async function sendSingleClickUpUpdate(taskId, site, commentText, projectType) {
+      const res = await fetch(`${API_URL}/clickup/send-template-update`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          template_type: "installation",
+          project_type: projectType,
+          clickup_task_id: taskId,
+          date: site.date,
+          time: site.time,
+          arrival_type: site.arrival_type,
+          window_start: site.window_start,
+          window_end: site.window_end,
+          address: site.address,
+          comment_text: commentText
+        })
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.detail || "Failed to send installation update to ClickUp.");
+      }
+    }
+
+    async function sendInstallationSiteToClickUp(site, projectType, techName, techPhone) {
+      const commentText = buildSingleSiteClickUpComment(projectType, techName, techPhone, site);
+
+      if (projectType === "both") {
+        await sendSingleClickUpUpdate(site.ip_camera_clickup_id, site, commentText, projectType);
+        await sendSingleClickUpUpdate(site.access_control_clickup_id, site, commentText, projectType);
+      } else {
+        await sendSingleClickUpUpdate(site.task_id, site, commentText, projectType);
+      }
+    }
+
+    async function generateInstallation() {
       try {
         await autoSaveTech();
 
@@ -1066,10 +1128,44 @@ Thank you,`;
         document.getElementById("subject_output").value = subject;
         document.getElementById("body_output").value = body;
 
-        alert("Service template generated and saved.");
+        alert("Installation template generated and saved.");
       } catch (error) {
         console.error(error);
-        alert(`Service template failed: ${error.message}`);
+        alert(`Installation template failed: ${error.message}`);
+      }
+    }
+
+    async function sendInstallationToClickUp() {
+      try {
+        await autoSaveTech();
+
+        const projectType = document.getElementById("project_type").value;
+        const isMulti = document.getElementById("site_count").value === "2";
+        const techName = document.getElementById("tech_name").value.trim();
+        const techPhone = document.getElementById("tech_phone").value.trim();
+
+        if (!techName || !techPhone) {
+          alert("Please enter the technician name and phone.");
+          return;
+        }
+
+        const site1 = getSiteData(1, projectType);
+        validateSite(site1, projectType, "Site 1");
+
+        if (isMulti) {
+          const site2 = getSiteData(2, projectType);
+          validateSite(site2, projectType, "Site 2");
+
+          await sendInstallationSiteToClickUp(site1, projectType, techName, techPhone);
+          await sendInstallationSiteToClickUp(site2, projectType, techName, techPhone);
+        } else {
+          await sendInstallationSiteToClickUp(site1, projectType, techName, techPhone);
+        }
+
+        alert("Installation update sent to ClickUp.");
+      } catch (error) {
+        console.error(error);
+        alert(`Send to ClickUp failed: ${error.message}`);
       }
     }
 
