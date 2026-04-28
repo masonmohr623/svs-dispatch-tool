@@ -939,7 +939,7 @@ def build_survey_draft_from_task(task_id: str, task: dict):
     state = ""
 
     if raw_site:
-    cleaned_site = raw_site.strip()
+        cleaned_site = raw_site.strip()
 
     if " - " in cleaned_site:
         parts = cleaned_site.split(" - ", 1)
